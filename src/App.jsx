@@ -816,8 +816,8 @@ const SettingsTab = ({
               className="h-12 w-12 rounded-full border border-slate-200 object-cover"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-lg font-semibold text-indigo-700">
-              {profile.avatar || "D"}
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(176,137,104,0.4)] text-lg font-semibold text-[#3C281E]">
+              {profile.avatar || "Y"}
             </div>
           )}
           <div>
