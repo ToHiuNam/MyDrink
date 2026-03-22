@@ -463,7 +463,7 @@ const RecordTab = ({
           }
         `}</style>
         <div className="flex">
-          {/* 卡片1：今日摄入统计 + 饮品按钮 */}
+          {/* 卡片1：今日摄入统计 + 进度条 */}
           <div className="flex-shrink-0 w-full snap-start">
             <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
               <p className="text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
@@ -481,6 +481,43 @@ const RecordTab = ({
               <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
                 每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
               </p>
+
+              {/* 饮水进度条 */}
+              <div className="mt-1">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>饮水进度</span>
+                  <span>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div
+                    className="bg-[#3b82f6] h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 今日剩余条目（可选，保持原样） */}
+              <div className="mt-4 pt-2 border-t border-slate-100">
+                <p className="text-xs text-slate-500">🎯 今日剩余</p>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span>咖啡因</span>
+                  <span className={dailyLimit - totalCaffeine > 0 ? "text-slate-700" : "text-rose-600"}>
+                    {Math.max(0, dailyLimit - totalCaffeine)} mg
+                  </span>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span>酒精</span>
+                  <span className={dailyAlcoholLimit - totalAlcohol > 0 ? "text-slate-700" : "text-rose-600"}>
+                    {Math.max(0, dailyAlcoholLimit - totalAlcohol)} mg
+                  </span>
+                </div>
+                <div className="mt-1 flex justify-between text-sm">
+                  <span>水分</span>
+                  <span className={dailyWaterTarget - totalWater > 0 ? "text-slate-700" : "text-green-600"}>
+                    {Math.max(0, dailyWaterTarget - totalWater)} ml
+                  </span>
+                </div>
+              </div>
 
               {/* 饮品按钮区域 */}
               <div className="mt-6">
