@@ -177,7 +177,116 @@ const getTrendChartData = (records, range, today, field = 'caffeine') => {
   return data.map((d) => ({ ...d, cumulative: d[field] }));
 };
 
+// ==================== 健康助手组件 ====================
+const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarget, totalWater }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 每分钟更新一次时间
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 计算咖啡因剩余量（半衰期 5 小时）
+  const caffeineRemaining = useMemo(() => {
+    let remaining = 0;
+    todayRecords.forEach(record => {
+      if (record.type === "咖啡" || record.type === "奶茶") {
+        const recordTime = new Date(record._date);
+        // 假设记录时间就是摄入时间（精确到分钟）
+        const minutesDiff = (currentTime - recordTime) / (1000 * 60);
+        if (minutesDiff < 0) return;
+        const halfLife = 300; // 5小时 = 300分钟
+        const ratio = Math.pow(0.5, minutesDiff / halfLife);
+        remaining += (record.caffeine || 0) * ratio;
+      }
+    });
+    return Math.round(remaining);
+  }, [todayRecords, currentTime]);
+
+  // 计算酒精 BAC（Widmark 公式）
+  const alcoholBAC = useMemo(() => {
+    if (!userWeight || userWeight <= 0) return null;
+    const r = userGender === "male" ? 0.68 : (userGender === "female" ? 0.55 : 0.6);
+    let totalAlcoholGrams = 0;
+    let latestDrinkTime = null;
+    todayRecords.forEach(record => {
+      if (record.type === "酒" && record.alcohol) {
+        const grams = record.alcohol / 1000; // mg -> g
+        totalAlcoholGrams += grams;
+        const recordTime = new Date(record._date);
+        if (!latestDrinkTime || recordTime > latestDrinkTime) latestDrinkTime = recordTime;
+      }
+    });
+    if (totalAlcoholGrams === 0) return 0;
+    const hoursSinceLastDrink = latestDrinkTime ? (currentTime - latestDrinkTime) / (1000 * 3600) : 0;
+    // BAC = (酒精克数 / (体重kg * r)) - (0.015 * 小时数)
+    let bac = (totalAlcoholGrams / (userWeight * r)) - (0.015 * Math.max(0, hoursSinceLastDrink));
+    bac = Math.max(0, bac);
+    return bac;
+  }, [todayRecords, currentTime, userWeight, userGender]);
+
+  // 喝水提醒：距离上次喝水超过 90 分钟且今日未达标
+  const waterReminder = useMemo(() => {
+    if (totalWater >= dailyWaterTarget) return null;
+    const lastWaterRecord = [...todayRecords]
+      .filter(r => r.type === "水")
+      .sort((a, b) => new Date(b._date) - new Date(a._date))[0];
+    if (!lastWaterRecord) return "今天还没喝水，快喝一杯吧！";
+    const lastWaterTime = new Date(lastWaterRecord._date);
+    const minutesSinceLast = (currentTime - lastWaterTime) / (1000 * 60);
+    if (minutesSinceLast > 90) {
+      return `距离上次喝水已超过 90 分钟，该补充水分了！还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml 达标。`;
+    }
+    return null;
+  }, [todayRecords, currentTime, dailyWaterTarget, totalWater]);
+
+  // 咖啡因提醒
+  const caffeineMessage = useMemo(() => {
+    if (caffeineRemaining === 0) return null;
+    const currentHour = currentTime.getHours();
+    if (currentHour >= 20 && caffeineRemaining > 50) {
+      return `⚠️ 当前体内约含 ${caffeineRemaining} mg 咖啡因，可能影响睡眠，建议今晚避免再摄入。`;
+    }
+    return `💪 体内咖啡因剩余约 ${caffeineRemaining} mg，${caffeineRemaining > 100 ? "含量较高" : "在正常范围"}。`;
+  }, [caffeineRemaining, currentTime]);
+
+  // 酒精提醒
+  const alcoholMessage = useMemo(() => {
+    if (alcoholBAC === null) return null;
+    if (alcoholBAC === 0) return "🍵 目前血液酒精浓度为 0，可以安全驾驶。";
+    const bacPercent = (alcoholBAC * 100).toFixed(2);
+    if (alcoholBAC >= 0.03) {
+      return `⚠️ 血液酒精浓度约 ${bacPercent}% ，不建议驾驶。请等待代谢。`;
+    }
+    return `🍺 血液酒精浓度约 ${bacPercent}% ，${alcoholBAC >= 0.02 ? "建议谨慎驾驶" : "基本安全"}。`;
+  }, [alcoholBAC]);
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mb-4">
+      <h3 className="text-base font-semibold text-slate-800 mb-3">💡 健康助手</h3>
+      <div className="space-y-3">
+        {waterReminder && (
+          <div className="flex items-start gap-2 text-sm">
+            <span className="text-blue-500">💧</span>
+            <p className="text-slate-700">{waterReminder}</p>
+          </div>
+        )}
+        <div className="flex items-start gap-2 text-sm">
+          <span className="text-orange-500">☕️</span>
+          <p className="text-slate-700">{caffeineMessage || "今日无咖啡因摄入"}</p>
+        </div>
+        <div className="flex items-start gap-2 text-sm">
+          <span className="text-amber-500">🍺</span>
+          <p className="text-slate-700">{alcoholMessage || "今日无酒精摄入"}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ==================== 子组件 ====================
+// 记录页标签页（含滑动卡片）
 const RecordTab = ({
   totalCaffeine,
   dailyLimit,
@@ -188,60 +297,134 @@ const RecordTab = ({
   totalWater,
   dailyWaterTarget,
   exceedWaterTarget,
-  onAddDrink
-}) => (
-  <section className="space-y-4">
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
-      <p className="text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
-      <p className="mt-1 text-3xl font-bold text-slate-800">{totalCaffeine} mg</p>
-      <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : "text-slate-500"}`}>
-        每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
-      </p>
-      <p className="mt-4 text-sm text-slate-500">🍺 今天已摄入酒精</p>
-      <p className="mt-1 text-3xl font-bold text-slate-800">{totalAlcohol} mg</p>
-      <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : "text-slate-500"}`}>
-        每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
-      </p>
-      <p className="mt-4 text-sm text-slate-500">💧 今天已摄入水分</p>
-      <p className="mt-1 text-3xl font-bold text-slate-800">{totalWater} ml</p>
-      <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
-        每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
-      </p>
-    </div>
+  onAddDrink,
+  userWeight,
+  userGender,
+  todayRecords
+}) => {
+  // 滑动容器引用和当前卡片索引
+  const scrollContainerRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const handleScroll = () => {
+    if (scrollContainerRef.current) {
+      const index = Math.round(scrollContainerRef.current.scrollLeft / scrollContainerRef.current.clientWidth);
+      setActiveIndex(index);
+    }
+  };
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      <div className="grid grid-cols-2 gap-3">
-        {["咖啡", "奶茶"].map((type) => (
+  // 点击指示点切换卡片
+  const scrollToCard = (index) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: index * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <section className="space-y-4">
+      {/* 横向滑动卡片区域 */}
+      <div
+        ref={scrollContainerRef}
+        className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        <div className="flex">
+          {/* 卡片1：今日摄入统计 */}
+          <div className="flex-shrink-0 w-full snap-start">
+            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+              <p className="text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCaffeine} mg</p>
+              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">🍺 今天已摄入酒精</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalAlcohol} mg</p>
+              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">💧 今天已摄入水分</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalWater} ml</p>
+              <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
+                每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
+              </p>
+            </div>
+          </div>
+
+          {/* 卡片2：健康助手 */}
+          <div className="flex-shrink-0 w-full snap-start px-2">
+            <HealthAssistant
+              todayRecords={todayRecords}
+              userWeight={userWeight}
+              userGender={userGender}
+              dailyWaterTarget={dailyWaterTarget}
+              totalWater={totalWater}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 页面指示点 */}
+      <div className="flex justify-center gap-2">
+        {[0, 1].map(idx => (
           <button
-            key={type}
-            className="h-28 rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-            style={{ backgroundColor: COLORS.primary, borderColor: COLORS.border }}
-            onClick={() => onAddDrink(type)}
-          >
-            <span className="block text-2xl">{type === "咖啡" ? "☕" : "🧋"}</span>
-            <span>{type}</span>
-          </button>
+            key={idx}
+            onClick={() => scrollToCard(idx)}
+            className={`h-2 rounded-full transition-all ${
+              activeIndex === idx ? "w-4 bg-[#3C281E]" : "w-2 bg-slate-300"
+            }`}
+          />
         ))}
       </div>
-      <button
-        className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-        style={{ backgroundColor: "#ffc02e", borderColor: "#e38216" }}
-        onClick={() => onAddDrink("酒")}
-      >
-        <span className="block text-2xl">🍺</span>
-        <span>酒</span>
-      </button>
-      <button
-        className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-        style={{ backgroundColor: "#90ccfb", borderColor: "#008ed5" }}
-        onClick={() => onAddDrink("水")}
-      >
-        <span className="block text-2xl">💧</span>
-        <span>水</span>
-      </button>
-    </div>
-  </section>
-);
+
+      {/* 添加饮品按钮区域（保持不变） */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div className="grid grid-cols-2 gap-3">
+          {["咖啡", "奶茶"].map((type) => (
+            <button
+              key={type}
+              className="h-28 rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
+              style={{ backgroundColor: COLORS.primary, borderColor: COLORS.border }}
+              onClick={() => onAddDrink(type)}
+            >
+              <span className="block text-2xl">{type === "咖啡" ? "☕" : "🧋"}</span>
+              <span>{type}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
+          style={{ backgroundColor: "#ffc02e", borderColor: "#e38216" }}
+          onClick={() => onAddDrink("酒")}
+        >
+          <span className="block text-2xl">🍺</span>
+          <span>酒</span>
+        </button>
+        <button
+          className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
+          style={{ backgroundColor: "#90ccfb", borderColor: "#008ed5" }}
+          onClick={() => onAddDrink("水")}
+        >
+          <span className="block text-2xl">💧</span>
+          <span>水</span>
+        </button>
+      </div>
+    </section>
+  );
+};
 
 // 数据趋势标签页（咖啡因/酒精/水分趋势左右滑动切换）
 const TrendTab = ({
@@ -373,7 +556,7 @@ const TrendTab = ({
   // 趋势卡片通用渲染函数
   const renderTrendCard = (title, unit, chartData, range, setRange, fieldColor = COLORS.primary) => {
     return (
-      <div className="flex-shrink-0 w-full px-2 snap-start">
+      <div className="flex-shrink-0 w-full snap-start">
         <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
           <div className="mb-2 flex items-center gap-2">
             <h2 className="text-base font-semibold text-slate-800 flex-shrink-0">
@@ -521,7 +704,7 @@ const TrendTab = ({
   );
 };
 
-// 个人设置标签页（与之前相同，已完整保留）
+// 个人设置标签页（增加性别选项）
 const SettingsTab = ({
   profile,
   isEditingProfile,
@@ -607,6 +790,12 @@ const SettingsTab = ({
     setTempDailyWaterTarget(String(num));
   };
 
+  // 性别选项
+  const genderOptions = ["未设置", "男", "女"];
+  const handleGenderChange = (gender) => {
+    setProfile(prev => ({ ...prev, gender }));
+  };
+
   return (
     <section className="space-y-4">
       <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
@@ -641,14 +830,36 @@ const SettingsTab = ({
           {Number(profile.age) > 0 ? <span>年龄：{profile.age}</span> : null}
           {Number(profile.weight) > 0 ? <span>体重：{profile.weight} kg</span> : null}
           {Number(profile.bloodSugar) > 0 ? <span>血糖：{profile.bloodSugar} mmol/L</span> : null}
+          {profile.gender && profile.gender !== "未设置" ? <span>性别：{profile.gender}</span> : null}
         </div>
 
         {isEditingProfile && (
-          <ProfileEditor
-            profile={profile}
-            setProfile={setProfile}
-            onAvatarUpload={onAvatarUpload}
-          />
+          <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
+            <ProfileEditor
+              profile={profile}
+              setProfile={setProfile}
+              onAvatarUpload={onAvatarUpload}
+            />
+            {/* 性别选择 */}
+            <div>
+              <label className="block text-xs text-slate-600 mb-1">性别</label>
+              <div className="flex gap-2">
+                {genderOptions.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => handleGenderChange(opt)}
+                    className={`flex-1 py-2 rounded-lg border text-sm ${
+                      profile.gender === opt
+                        ? "bg-[#b08968] text-white border-[#9c7a5f]"
+                        : "bg-white text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         <div className="mt-4 grid grid-cols-5 gap-2 text-center">
@@ -1346,7 +1557,8 @@ function App() {
       age: "",
       bio: "欢迎记录你的饮品习惯",
       weight: "",
-      bloodSugar: ""
+      bloodSugar: "",
+      gender: "未设置"   // 新增性别字段
     };
   });
 
@@ -1455,7 +1667,7 @@ function App() {
       const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
         now.getMinutes()
       ).padStart(2, "0")}`;
-      const todayDate = dateToKey(now);   // 获取当天日期 YYYY-MM-DD
+      const todayDate = dateToKey(now);
       setPickerState({
         open: true,
         type: type,
@@ -1466,7 +1678,7 @@ function App() {
         waterTemp: WATER_TEMP_OPTIONS[0],
         time: currentTime,
         customAmount: type === "酒" ? String(DEFAULT_ALCOHOL_MG) : (type === "水" ? String(DEFAULT_WATER_ML) : ""),
-        date: todayDate   // 修改点：默认日期设为今天
+        date: todayDate
       });
     }
   }, []);
@@ -1685,6 +1897,9 @@ function App() {
             dailyWaterTarget={dailyWaterTarget}
             exceedWaterTarget={exceedWaterTarget}
             onAddDrink={(type) => openPicker(type)}
+            userWeight={Number(profile.weight) || 0}
+            userGender={profile.gender === "男" ? "male" : (profile.gender === "女" ? "female" : "unknown")}
+            todayRecords={todayRecords}
           />
         )}
 
