@@ -177,8 +177,16 @@ const getTrendChartData = (records, range, today, field = 'caffeine') => {
   return data.map((d) => ({ ...d, cumulative: d[field] }));
 };
 
-// ==================== 健康助手组件 ====================
-const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarget, totalWater }) => {
+// ==================== 健康助手组件（增强版） ====================
+const HealthAssistant = ({
+  todayRecords,
+  userWeight,
+  userGender,
+  dailyWaterTarget,
+  totalWater,
+  userAge,
+  userBloodSugar
+}) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // 每分钟更新一次时间
@@ -193,7 +201,6 @@ const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarge
     todayRecords.forEach(record => {
       if (record.type === "咖啡" || record.type === "奶茶") {
         const recordTime = new Date(record._date);
-        // 假设记录时间就是摄入时间（精确到分钟）
         const minutesDiff = (currentTime - recordTime) / (1000 * 60);
         if (minutesDiff < 0) return;
         const halfLife = 300; // 5小时 = 300分钟
@@ -220,7 +227,6 @@ const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarge
     });
     if (totalAlcoholGrams === 0) return 0;
     const hoursSinceLastDrink = latestDrinkTime ? (currentTime - latestDrinkTime) / (1000 * 3600) : 0;
-    // BAC = (酒精克数 / (体重kg * r)) - (0.015 * 小时数)
     let bac = (totalAlcoholGrams / (userWeight * r)) - (0.015 * Math.max(0, hoursSinceLastDrink));
     bac = Math.max(0, bac);
     return bac;
@@ -262,9 +268,78 @@ const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarge
     return `🍺 血液酒精浓度约 ${bacPercent}% ，${alcoholBAC >= 0.02 ? "建议谨慎驾驶" : "基本安全"}。`;
   }, [alcoholBAC]);
 
+  // 个性化建议（基于年龄、体重、血糖）
+  const healthAdvice = useMemo(() => {
+    const advices = [];
+
+    // 1. 饮水量建议：体重 * 30ml（一般推荐）
+    if (userWeight > 0) {
+      const recommendedWater = Math.round(userWeight * 30);
+      advices.push(`💧 根据您的体重 ${userWeight} kg，每日建议饮水量约 ${recommendedWater} ml。`);
+    } else {
+      advices.push(`💧 建议在个人设置中填写体重，以便获得更精准的饮水建议。`);
+    }
+
+    // 2. 咖啡因建议（根据年龄、体重）
+    if (userAge > 0) {
+      if (userAge < 18) {
+        advices.push(`☕️ 您年龄较小，建议每日咖啡因不超过 100 mg。`);
+      } else if (userAge > 60) {
+        advices.push(`☕️ 您年龄较大，建议每日咖啡因不超过 200 mg。`);
+      } else {
+        advices.push(`☕️ 成年人每日咖啡因建议不超过 400 mg，请根据自身感受调整。`);
+      }
+    } else {
+      advices.push(`☕️ 可在个人设置中填写年龄，获取咖啡因摄入建议。`);
+    }
+
+    // 3. 血糖建议
+    if (userBloodSugar > 0) {
+      if (userBloodSugar < 3.9) {
+        advices.push(`🩸 血糖偏低（${userBloodSugar} mmol/L），注意补充糖分，避免低血糖。`);
+      } else if (userBloodSugar > 6.1) {
+        advices.push(`🩸 血糖偏高（${userBloodSugar} mmol/L），建议减少高糖饮品，定期监测。`);
+      } else {
+        advices.push(`🩸 血糖在正常范围（${userBloodSugar} mmol/L），继续保持良好习惯。`);
+      }
+    } else {
+      advices.push(`🩸 可在个人设置中填写血糖值，获取个性化建议。`);
+    }
+
+    return advices;
+  }, [userWeight, userAge, userBloodSugar]);
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mb-4">
       <h3 className="text-base font-semibold text-slate-800 mb-3">💡 健康助手</h3>
+
+      {/* 个性化建议卡片 */}
+      <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-200">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xl">📋</span>
+          <h4 className="font-medium text-slate-800">今日摄入建议</h4>
+        </div>
+        <ul className="space-y-1 text-sm text-slate-700">
+          {healthAdvice.map((advice, idx) => (
+            <li key={idx}>{advice}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* 血糖/体重趋势关联提示 */}
+      <div className="bg-indigo-50 rounded-xl p-3 mb-4 border border-indigo-200">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">📈</span>
+          <h4 className="font-medium text-slate-800">健康趋势关联</h4>
+        </div>
+        <p className="text-xs text-slate-600">
+          定期在「个人设置」中更新体重和血糖，系统将根据您的饮品记录分析健康趋势。
+          <br />
+          （后续版本将支持体重/血糖历史记录图表，敬请期待）
+        </p>
+      </div>
+
+      {/* 原有的提醒部分（喝水、咖啡因、酒精） */}
       <div className="space-y-3">
         {waterReminder && (
           <div className="flex items-start gap-2 text-sm">
@@ -286,7 +361,7 @@ const HealthAssistant = ({ todayRecords, userWeight, userGender, dailyWaterTarge
 };
 
 // ==================== 子组件 ====================
-// 记录页标签页（含滑动卡片）
+// 记录页标签页（含滑动卡片，按钮移至第一张卡片内）
 const RecordTab = ({
   totalCaffeine,
   dailyLimit,
@@ -300,7 +375,9 @@ const RecordTab = ({
   onAddDrink,
   userWeight,
   userGender,
-  todayRecords
+  todayRecords,
+  userAge,
+  userBloodSugar
 }) => {
   // 滑动容器引用和当前卡片索引
   const scrollContainerRef = useRef(null);
@@ -329,6 +406,49 @@ const RecordTab = ({
     }
   };
 
+  // 饮品按钮区域
+  const DrinkButtons = () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div className="grid grid-cols-2 gap-3">
+        {/* 咖啡按钮 */}
+        <button
+          className="h-26 rounded-2xl border text-l font-semibold text-white shadow-md transition active:scale-95"
+          style={{ backgroundColor: "rgba(176, 137, 104, 0.8)", borderColor: COLORS.border }}
+          onClick={() => onAddDrink("咖啡")}
+        >
+          <span className="block text-2xl">☕</span>
+          <span>咖啡</span>
+        </button>
+        {/* 奶茶按钮 */}
+        <button
+          className="h-26 rounded-2xl border text-l font-semibold text-white shadow-md transition active:scale-95"
+          style={{ backgroundColor: "rgba(202, 147, 103, 0.7)", borderColor: "rgba(203, 142, 92)" }}
+          onClick={() => onAddDrink("奶茶")}
+        >
+          <span className="block text-2xl">🧋</span>
+          <span>奶茶</span>
+        </button>
+      </div>
+      {/* 酒和水按钮保持不变 */}
+      <button
+        className="h-26 w-full rounded-2xl border text-l font-semibold text-white shadow-md transition active:scale-95"
+        style={{ backgroundColor: "rgba(255, 192, 46, 0.7)", borderColor: "#e38216" }}
+        onClick={() => onAddDrink("酒")}
+      >
+        <span className="block text-2xl">🍺</span>
+        <span>酒</span>
+      </button>
+      <button
+        className="h-26 w-full rounded-2xl border text-l font-semibold text-white shadow-md transition active:scale-95"
+        style={{ backgroundColor: "rgba(144, 204, 251, 0.6)", borderColor: "#008ed5" }}
+        onClick={() => onAddDrink("水")}
+      >
+        <span className="block text-2xl">💧</span>
+        <span>水</span>
+      </button>
+    </div>
+  );
+
   return (
     <section className="space-y-4">
       {/* 横向滑动卡片区域 */}
@@ -343,7 +463,7 @@ const RecordTab = ({
           }
         `}</style>
         <div className="flex">
-          {/* 卡片1：今日摄入统计 */}
+          {/* 卡片1：今日摄入统计 + 饮品按钮 */}
           <div className="flex-shrink-0 w-full snap-start">
             <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
               <p className="text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
@@ -361,6 +481,11 @@ const RecordTab = ({
               <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
                 每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
               </p>
+
+              {/* 饮品按钮区域 */}
+              <div className="mt-6">
+                <DrinkButtons />
+              </div>
             </div>
           </div>
 
@@ -372,6 +497,8 @@ const RecordTab = ({
               userGender={userGender}
               dailyWaterTarget={dailyWaterTarget}
               totalWater={totalWater}
+              userAge={userAge}
+              userBloodSugar={userBloodSugar}
             />
           </div>
         </div>
@@ -388,39 +515,6 @@ const RecordTab = ({
             }`}
           />
         ))}
-      </div>
-
-      {/* 添加饮品按钮区域（保持不变） */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div className="grid grid-cols-2 gap-3">
-          {["咖啡", "奶茶"].map((type) => (
-            <button
-              key={type}
-              className="h-28 rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-              style={{ backgroundColor: COLORS.primary, borderColor: COLORS.border }}
-              onClick={() => onAddDrink(type)}
-            >
-              <span className="block text-2xl">{type === "咖啡" ? "☕" : "🧋"}</span>
-              <span>{type}</span>
-            </button>
-          ))}
-        </div>
-        <button
-          className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-          style={{ backgroundColor: "#ffc02e", borderColor: "#e38216" }}
-          onClick={() => onAddDrink("酒")}
-        >
-          <span className="block text-2xl">🍺</span>
-          <span>酒</span>
-        </button>
-        <button
-          className="h-28 w-full rounded-2xl border text-xl font-semibold text-white shadow-md transition active:scale-95"
-          style={{ backgroundColor: "#90ccfb", borderColor: "#008ed5" }}
-          onClick={() => onAddDrink("水")}
-        >
-          <span className="block text-2xl">💧</span>
-          <span>水</span>
-        </button>
       </div>
     </section>
   );
@@ -1558,7 +1652,7 @@ function App() {
       bio: "欢迎记录你的饮品习惯",
       weight: "",
       bloodSugar: "",
-      gender: "未设置"   // 新增性别字段
+      gender: "未设置"
     };
   });
 
@@ -1900,6 +1994,8 @@ function App() {
             userWeight={Number(profile.weight) || 0}
             userGender={profile.gender === "男" ? "male" : (profile.gender === "女" ? "female" : "unknown")}
             todayRecords={todayRecords}
+            userAge={Number(profile.age) || 0}
+            userBloodSugar={Number(profile.bloodSugar) || 0}
           />
         )}
 
