@@ -771,7 +771,7 @@ const TrendTab = ({
         <div className="flex">
           {renderTrendCard("咖啡因", "mg", caffeineChartData, caffeineRange, setCaffeineRange, COLORS.primary)}
           {renderTrendCard("酒精", "mg", alcoholChartData, alcoholRange, setAlcoholRange, "#f59e0b")}
-          {renderTrendCard("水分", "ml", waterChartData, waterRange, setWaterRange, "#10b981")}
+          {renderTrendCard("水分", "ml", waterChartData, waterRange, setWaterRange, "#3b82f6")}
         </div>
       </div>
       {/* 可选：页面指示点 */}
