@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-3. 打开终端输出的本地地址（通常是 `http://localhost:5173`）。
+3. 打开终端输出的本地地址。
 
 ## 当前原型功能
 
