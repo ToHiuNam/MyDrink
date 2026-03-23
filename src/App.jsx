@@ -619,9 +619,10 @@ const TrendTab = ({
   const [caloriesRange, setCaloriesRange] = useState("今日");
   const [fatRange, setFatRange] = useState("今日");
 
-  const caffeineChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, caffeineRange, today, 'caffeine'),
-    [normalizedRecords, caffeineRange, today]
+  const caffeineChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, caffeineRange, today);
+    return getTrendChartData(filtered, caffeineRange, today, 'caffeine');
+    }, [normalizedRecords, caffeineRange, today]
   );
   const alcoholChartData = useMemo(
     () => getTrendChartData(normalizedRecords, alcoholRange, today, 'alcohol'),
