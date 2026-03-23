@@ -148,6 +148,23 @@ const COLORS = {
   }
 };
 
+// 计算对比度颜色函数
+const getContrastColor = (hexColor) => {
+  // 移除#号
+  const hex = hexColor.replace("#", "");
+  
+  // 转换为RGB
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  
+  // 计算亮度
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  
+  // 根据亮度返回黑色或白色
+  return brightness > 128 ? "#000000" : "#ffffff";
+};
+
 const PIE_COLORS = COLORS.pie;
 
 // ==================== 辅助函数 ====================
@@ -517,7 +534,7 @@ const HealthAssistant = ({
     <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mb-4 transition-all duration-300`}>
       <h3 className={`text-base font-semibold ${currentTheme.colors.text} mb-3`}>💡 健康助手</h3>
 
-      <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-200">
+      <div className={`${currentTheme.colors.warning} rounded-xl p-3 mb-4 border ${currentTheme.colors.warningBorder}`}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">📋</span>
           <h4 className={`font-medium ${currentTheme.colors.text}`}>今日摄入建议</h4>
@@ -529,7 +546,7 @@ const HealthAssistant = ({
         </ul>
       </div>
 
-      <div className="bg-indigo-50 rounded-xl p-3 mb-4 border border-indigo-200">
+      <div className={`${currentTheme.colors.info} rounded-xl p-3 mb-4 border ${currentTheme.colors.infoBorder}`}>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">📈</span>
           <h4 className={`font-medium ${currentTheme.colors.text}`}>健康趋势关联</h4>
@@ -628,7 +645,8 @@ const RecordTab = ({
   userAge,
   userBloodSugar,
   currentTheme,
-  currentUiStyle
+  currentUiStyle,
+  accentColor
 }) => {
   const scrollContainerRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -655,10 +673,10 @@ const RecordTab = ({
     }
   };
 
-  const RemainingItem = ({ label, value, limit, unit, exceedColor = "text-rose-600", normalColor = "text-slate-700" }) => (
+  const RemainingItem = ({ label, value, limit, unit, exceedColor = "text-rose-500", normalColor = currentTheme.colors.textSecondary }) => (
     <div className="mt-1 flex justify-between text-sm">
-      <span>{label}</span>
-      <span className={value > limit ? exceedColor : normalColor}>
+      <span className={currentTheme.colors.text}>{label}</span>
+      <span className={value > limit ? exceedColor : currentTheme.colors.text}>
         {Math.max(0, limit - value)} {unit}
       </span>
     </div>
@@ -686,11 +704,14 @@ const RecordTab = ({
                   <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2">
-                  <div
-                    className="bg-[#3b82f6] h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%` }}
-                  />
-                </div>
+                    <div
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%`,
+                        backgroundColor: accentColor
+                      }}
+                    />
+                  </div>
               </div>
               <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>☕️ 今天已摄入咖啡因</p>
               <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalCaffeine} mg</p>
@@ -754,16 +775,21 @@ const RecordTab = ({
           <button
             key={idx}
             onClick={() => scrollToCard(idx)}
-            className={`h-2 rounded-full transition-all ${
-              activeIndex === idx ? "w-4 bg-[#3C281E]" : "w-2 bg-slate-300"
-            }`}
+            className={`h-2 rounded-full transition-all ${activeIndex === idx ? 'w-4' : 'w-2'}`}
+            style={{
+              backgroundColor: activeIndex === idx ? accentColor : currentTheme.colors.borderLight.replace('border-', '')
+            }}
           />
         ))}
       </div>
       <div className="fixed bottom-20 right-6 z-20">
         <button
           onClick={() => onAddDrink("咖啡")}
-          className="flex items-center justify-center w-14 h-14 rounded-full bg-[#b08968] text-white shadow-lg hover:bg-[#9c7a5f] transition-all active:scale-95"
+          className="flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:bg-opacity-90 transition-all active:scale-95"
+          style={{
+            backgroundColor: accentColor,
+            color: getContrastColor(accentColor)
+          }}
         >
           <span className="text-3xl">+</span>
         </button>
@@ -782,7 +808,11 @@ const TrendTab = ({
   onEdit,
   onDelete,
   currentTheme,
-  currentUiStyle
+  currentUiStyle,
+  accentColor,
+  trendRange,
+  setTrendRange,
+  chartData
 }) => {
   const [caffeineRange, setCaffeineRange] = useState("今日");
   const [alcoholRange, setAlcoholRange] = useState("今日");
@@ -857,15 +887,16 @@ const TrendTab = ({
       <g>
         <path
           d={`M${startX},${startY} L${midX},${midY} L${elbowX},${elbowY}`}
-          stroke="#9ca3af"
+          stroke={currentTheme.name === 'light' ? '#1e293b' : '#9ca3af'}
           fill="none"
-          strokeWidth={1}
+          strokeWidth={1.5}
         />
         <text
           x={textX}
           y={textY}
-          fill="#374151"
-          fontSize={11}
+          fill={currentTheme.name === 'light' ? '#000000' : '#f3f4f6'}
+          fontSize={12}
+          fontWeight="500"
           textAnchor={textAnchor}
           dominantBaseline="middle"
         >
@@ -880,9 +911,9 @@ const TrendTab = ({
       const { name, value } = payload[0];
       const percent = totalCount === 0 ? 0 : ((value / totalCount) * 100).toFixed(1);
       return (
-        <div className="rounded-lg bg-white p-2 shadow-md border border-slate-200 text-sm">
-          <p className="font-medium text-slate-800">{name}</p>
-          <p className="text-slate-600">{value} 杯 ({percent}%)</p>
+        <div className={`rounded-lg ${currentTheme.colors.card} p-2 shadow-md border ${currentTheme.colors.border} text-sm`}>
+          <p className={`font-medium ${currentTheme.colors.text}`}>{name}</p>
+          <p className={`${currentTheme.colors.textSecondary}`}>{value} 杯 ({percent}%)</p>
         </div>
       );
     }
@@ -934,13 +965,13 @@ const TrendTab = ({
             <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>
               📊 {title}趋势
             </h2>
-            <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
+            <div className={`flex-1 min-w-0 overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
               <div className="flex gap-1">
                 {TREND_RANGES.map((r) => (
                   <button
                     key={r}
                     className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
-                      range === r ? `bg-white ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
+                      range === r ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
                     }`}
                     onClick={() => setRange(r)}
                   >
@@ -951,24 +982,34 @@ const TrendTab = ({
             </div>
           </div>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
               <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
                 <defs>
-                  <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`gradient-${title}-${currentTheme.name}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={fieldColor} stopOpacity={0.8} />
                     <stop offset="95%" stopColor={fieldColor} stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="time" tick={{ fontSize: 12, fill: currentTheme.colors.textSecondary }} />
-                <YAxis tick={{ fontSize: 12, fill: currentTheme.colors.textSecondary }} />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563'} />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                  axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                  tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                  axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                  tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
+                  domain={[0, 'dataMax + 1']}
+                />
+                <Tooltip contentStyle={{ backgroundColor: currentTheme.colors.card, borderColor: currentTheme.colors.border, color: currentTheme.colors.text }} />
                 <Area
                   type="monotone"
                   dataKey="cumulative"
                   stroke={fieldColor}
                   fillOpacity={1}
-                  fill={`url(#gradient-${title})`}
+                  fill={`url(#gradient-${title}-${currentTheme.name})`}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -978,7 +1019,7 @@ const TrendTab = ({
     );
   };
 
-  const CalendarHeatmap = () => {
+  const CalendarHeatmap = ({ accentColor }) => {
     const [currentDate, setCurrentDate] = useState(new Date(today));
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -1010,11 +1051,16 @@ const TrendTab = ({
 
     const getBgColorStyle = (count) => {
       if (count === 0) return currentTheme.colors.card;
-      if (maxCount === 0) return "#f3f4f6";
+      if (maxCount === 0) return currentTheme.colors.card;
       const intensity = count / maxCount;
-      const saturation = 30 + intensity * 40;
-      const lightness = 80 - intensity * 50;
-      return `hsl(30, ${saturation}%, ${lightness}%)`;
+      // 从 accentColor 中提取 RGB 值
+      const hex = accentColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      // 根据强度调整亮度
+      const lightness = 1 - intensity * 0.5; // 从 100% 到 50%
+      return `rgb(${Math.round(r * lightness)}, ${Math.round(g * lightness)}, ${Math.round(b * lightness)})`;
     };
 
     const prevMonth = () => {
@@ -1098,7 +1144,7 @@ const TrendTab = ({
   const hasData = normalizedRecords.length > 0;
 
   const trendCards = [
-    { title: "咖啡因", unit: "mg", chartData: caffeineChartData, range: caffeineRange, setRange: setCaffeineRange, color: COLORS.primary },
+    { title: "咖啡因", unit: "mg", chartData: caffeineChartData, range: caffeineRange, setRange: setCaffeineRange, color: "#9c7a5f" },
     { title: "酒精", unit: "mg", chartData: alcoholChartData, range: alcoholRange, setRange: setAlcoholRange, color: "#f59e0b" },
     { title: "水分", unit: "ml", chartData: waterChartData, range: waterRange, setRange: setWaterRange, color: "#3b82f6" },
     { title: "糖分", unit: "g", chartData: sugarChartData, range: sugarRange, setRange: setSugarRange, color: "#ec489a" },
@@ -1110,17 +1156,17 @@ const TrendTab = ({
     <section className="space-y-4">
       {hasData ? (
         <>
-          <CalendarHeatmap />
+          <CalendarHeatmap accentColor={accentColor} />
           <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
             <div className="mb-2 flex items-center gap-2">
               <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>🥤 {getPieTitle()}</h2>
-              <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
+              <div className={`flex-1 min-w-0 overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
                 <div className="flex gap-1">
                   {TREND_RANGES.map((range) => (
                     <button
                       key={range}
                       className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
-                        pieRange === range ? `bg-white ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
+                        pieRange === range ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
                       }`}
                       onClick={() => setPieRange(range)}
                     >
@@ -1136,7 +1182,7 @@ const TrendTab = ({
                   暂无数据
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
                   <PieChart>
                     <Pie
                       data={filteredPieData}
@@ -1145,7 +1191,44 @@ const TrendTab = ({
                       cy="45%"
                       innerRadius={40}
                       outerRadius={60}
-                      label={renderCustomLabel}
+                      label={({ cx, cy, midAngle, outerRadius, percent, name }) => {
+                        const RADIAN = Math.PI / 180;
+                        const midRadius = outerRadius + 20;
+                        const horizontalOffset = 15;
+                        const midX = cx + midRadius * Math.cos(-midAngle * RADIAN);
+                        const midY = cy + midRadius * Math.sin(-midAngle * RADIAN);
+                        const isRight = midX > cx;
+                        const textX = midX + (isRight ? horizontalOffset : -horizontalOffset);
+                        const textY = midY;
+                        const elbowX = textX;
+                        const elbowY = midY;
+                        const startX = cx + outerRadius * Math.cos(-midAngle * RADIAN);
+                        const startY = cy + outerRadius * Math.sin(-midAngle * RADIAN);
+                        const percentValue = (percent * 100).toFixed(0);
+                        const textAnchor = isRight ? "start" : "end";
+
+                        return (
+                          <g>
+                            <path
+                              d={`M${startX},${startY} L${midX},${midY} L${elbowX},${elbowY}`}
+                              stroke={currentTheme.name === 'light' ? '#9ca3af' : '#9ca3af'}
+                              fill="none"
+                              strokeWidth={1.5}
+                            />
+                            <text
+                              x={textX}
+                              y={textY}
+                              fill={currentTheme.name === 'light' ? '#9ca3af' : '#9ca3af'}
+                              fontSize={14}
+                              fontWeight="500"
+                              textAnchor={textAnchor}
+                              dominantBaseline="middle"
+                            >
+                              {`${name} ${percentValue}%`}
+                            </text>
+                          </g>
+                        );
+                      }}
                       labelLine={false}
                     >
                       {filteredPieData.map((entry, index) => (
@@ -1158,7 +1241,7 @@ const TrendTab = ({
                       height={36}
                       margin={{ top: 20 }}
                       wrapperStyle={{ marginTop: "12px" }}
-                      formatter={(value) => <span style={{ color: currentTheme.colors.textSecondary }}>{value}</span>}
+                      formatter={(value) => <span style={{ color: currentTheme.name === 'light' ? '#334155' : '#9ca3af' }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1180,18 +1263,19 @@ const TrendTab = ({
           <button
             key={idx}
             onClick={() => scrollToCard(idx)}
-            className={`h-2 rounded-full transition-all ${
-              activeIndex === idx ? "w-4 bg-[#3C281E]" : "w-2 bg-slate-300"
-            }`}
+            className={`h-2 rounded-full transition-all ${activeIndex === idx ? 'w-4' : 'w-2'}`}
+            style={{
+              backgroundColor: activeIndex === idx ? accentColor : currentTheme.colors.borderLight.replace('border-', '')
+            }}
           />
         ))}
       </div>
         </>
       ) : (
-        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-indigo-50 flex flex-col items-center justify-center">
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-8 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} flex flex-col items-center justify-center`}>
           <div className="text-4xl mb-4">📊</div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">暂无数据</h3>
-          <p className="text-sm text-slate-500 text-center">
+          <h3 className={`text-lg font-semibold ${currentTheme.colors.text} mb-2`}>暂无数据</h3>
+          <p className={`text-sm ${currentTheme.colors.textLight} text-center`}>
             开始记录你的饮品，查看健康数据趋势
           </p>
         </div>
@@ -1251,7 +1335,8 @@ const SettingsTab = ({
   accentColor,
   setAccentColor,
   currentTheme,
-  currentUiStyle
+  currentUiStyle,
+  getContrastColor
 }) => {
   // 通用处理函数
   const handleLimitChange = (value, setter, min, max, defaultValue) => {
@@ -1297,304 +1382,345 @@ const SettingsTab = ({
     setProfile(prev => ({ ...prev, gender }));
   };
 
-  return (
-    <section className="space-y-4">
-      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-        <div className="flex items-center justify-between">
-          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
-          <button
-            className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-100`}
-            onClick={() => setIsEditingProfile((v) => !v)}
-          >
-            {isEditingProfile ? "完成" : "编辑"}
-          </button>
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          {String(profile.avatar || "").startsWith("data:image") ? (
-            <img
-              src={profile.avatar}
-              alt="avatar"
-              className="h-12 w-12 rounded-full border border-slate-200 object-cover"
-            />
-          ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(176,137,104,0.4)] text-lg font-semibold text-[#3C281E]">
-              {profile.avatar || "Y"}
-            </div>
-          )}
-          <div>
-            <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{profile.nickname || "未命名用户"}</p>
-            {profile.bio ? <p className={`text-xs ${currentTheme.colors.textLight}`}>{profile.bio}</p> : null}
+  try {
+    return (
+      <section className="space-y-4">
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+          <div className="flex items-center justify-between">
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
+            <button
+              className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-100`}
+              onClick={() => setIsEditingProfile((v) => !v)}
+            >
+              {isEditingProfile ? "完成" : "编辑"}
+            </button>
           </div>
-        </div>
-        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-          {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
-          {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
-          {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
-          {profile.gender && profile.gender !== "未设置" ? <span className={currentTheme.colors.textLight}>性别：{profile.gender}</span> : null}
-        </div>
-
-        {isEditingProfile && (
-          <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
-            <ProfileEditor
-              profile={profile}
-              setProfile={setProfile}
-              onAvatarUpload={onAvatarUpload}
-              currentTheme={currentTheme}
-              currentUiStyle={currentUiStyle}
-            />
+          <div className="mt-3 flex items-center gap-3">
+            {String(profile.avatar || "").startsWith("data:image") ? (
+              <img
+                src={profile.avatar}
+                alt="avatar"
+                className="h-12 w-12 rounded-full border border-slate-200 object-cover"
+              />
+            ) : (
+              <div 
+                className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold"
+                style={{
+                  backgroundColor: `${accentColor}40`,
+                  color: getContrastColor(accentColor)
+                }}
+              >
+                {profile.avatar || "Y"}
+              </div>
+            )}
             <div>
-              <label className={`block text-xs ${currentTheme.colors.textSecondary} mb-1`}>性别</label>
-              <div className="flex gap-2">
-                {genderOptions.map(opt => (
-                  <button
+              <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{profile.nickname || "未命名用户"}</p>
+              {profile.bio ? <p className={`text-xs ${currentTheme.colors.textLight}`}>{profile.bio}</p> : null}
+            </div>
+          </div>
+          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+            {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
+            {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
+            {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
+            {profile.gender && profile.gender !== "未设置" ? <span className={currentTheme.colors.textLight}>性别：{profile.gender}</span> : null}
+          </div>
+
+          {isEditingProfile && (
+            <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
+              <ProfileEditor
+                profile={profile}
+                setProfile={setProfile}
+                onAvatarUpload={onAvatarUpload}
+                currentTheme={currentTheme}
+                currentUiStyle={currentUiStyle}
+                accentColor={accentColor}
+                getContrastColor={getContrastColor}
+              />
+              <div>
+                <label className={`block text-xs ${currentTheme.colors.textSecondary} mb-1`}>性别</label>
+                <div className="flex gap-2">
+                  {genderOptions.map(opt => (
+                    <button
                     key={opt}
                     onClick={() => handleGenderChange(opt)}
-                    className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${
-                      profile.gender === opt
-                        ? `bg-[${accentColor}] text-white border-[${accentColor}]`
-                        : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: profile.gender === opt ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: profile.gender === opt ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: profile.gender === opt ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {opt}
                   </button>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="mt-4 grid grid-cols-5 gap-2 text-center">
-          <div className="rounded-lg bg-slate-100 py-2">
-            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{recordsCount}</p>
-            <p className={`text-xs ${currentTheme.colors.textLight}`}>总杯数</p>
-          </div>
-          <div className="rounded-lg bg-slate-100 py-2">
-            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{coffeeCount}</p>
-            <p className={`text-xs ${currentTheme.colors.textLight}`}>咖啡</p>
-          </div>
-          <div className="rounded-lg bg-slate-100 py-2">
-            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{milkTeaCount}</p>
-            <p className={`text-xs ${currentTheme.colors.textLight}`}>奶茶</p>
-          </div>
-          <div className="rounded-lg bg-slate-100 py-2">
-            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{alcoholCount}</p>
-            <p className={`text-xs ${currentTheme.colors.textLight}`}>酒</p>
-          </div>
-          <div className="rounded-lg bg-slate-100 py-2">
-            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{waterCount}</p>
-            <p className={`text-xs ${currentTheme.colors.textLight}`}>水</p>
+          <div className="mt-4 grid grid-cols-5 gap-2 text-center">
+            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{recordsCount}</p>
+              <p className={`text-xs ${currentTheme.colors.textLight}`}>总杯数</p>
+            </div>
+            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{coffeeCount}</p>
+              <p className={`text-xs ${currentTheme.colors.textLight}`}>咖啡</p>
+            </div>
+            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{milkTeaCount}</p>
+              <p className={`text-xs ${currentTheme.colors.textLight}`}>奶茶</p>
+            </div>
+            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{alcoholCount}</p>
+              <p className={`text-xs ${currentTheme.colors.textLight}`}>酒</p>
+            </div>
+            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{waterCount}</p>
+              <p className={`text-xs ${currentTheme.colors.textLight}`}>水</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-        <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
-        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日咖啡因上限（mg）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailyLimit === 0 ? "" : dailyLimit}
-              onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailyLimitBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日酒精上限（mg）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
-              onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailyAlcoholLimitBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日喝水目标（ml）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
-              onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailyWaterTargetBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日糖分上限（g）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailySugarLimit === 0 ? "" : dailySugarLimit}
-              onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailySugarLimitBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日热量上限（kcal）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
-              onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailyCaloriesLimitBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
-          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-            每日脂肪上限（g）
-            <input
-              type="text"
-              inputMode="numeric"
-              value={dailyFatLimit === 0 ? "" : dailyFatLimit}
-              onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-              onBlur={handleDailyFatLimitBlur}
-              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-            />
-          </label>
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
+          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日咖啡因上限（mg）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailyLimit === 0 ? "" : dailyLimit}
+                onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailyLimitBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日酒精上限（mg）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
+                onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailyAlcoholLimitBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日喝水目标（ml）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
+                onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailyWaterTargetBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日糖分上限（g）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailySugarLimit === 0 ? "" : dailySugarLimit}
+                onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailySugarLimitBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日热量上限（kcal）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
+                onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailyCaloriesLimitBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+              每日脂肪上限（g）
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dailyFatLimit === 0 ? "" : dailyFatLimit}
+                onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                onBlur={handleDailyFatLimitBlur}
+                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </label>
+          </div>
         </div>
-      </div>
 
-      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-        <CustomDrinkManager
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+          <CustomDrinkManager
           customDrinks={customDrinks}
           onAdd={onAddCustomDrink}
           onEdit={onEditCustomDrink}
           onDelete={onDeleteCustomDrink}
           currentTheme={currentTheme}
           currentUiStyle={currentUiStyle}
+          accentColor={accentColor}
         />
-      </div>
+        </div>
 
-      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-        <IngredientManager
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+          <IngredientManager
           ingredients={ingredients}
           onAdd={onAddIngredient}
           onEdit={onEditIngredient}
           onDelete={onDeleteIngredient}
           currentTheme={currentTheme}
           currentUiStyle={currentUiStyle}
+          accentColor={accentColor}
         />
-      </div>
+        </div>
 
-      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-        <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>🎨 个性化设置</h2>
-        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
-        
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>主题模式</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setTheme('light')}
-                className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${
-                  theme === 'light' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                }`}
-              >
-                浅色模式
-              </button>
-              <button
-                onClick={() => setTheme('dark')}
-                className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${
-                  theme === 'dark' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                }`}
-              >
-                深色模式
-              </button>
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>🎨 个性化设置</h2>
+          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
+          
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>主题模式</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: theme === 'light' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: theme === 'light' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: theme === 'light' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
+                >
+                  浅色模式
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: theme === 'dark' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: theme === 'dark' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: theme === 'dark' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
+                >
+                  深色模式
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>UI风格</label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => setUiStyle('default')}
-                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
-                  uiStyle === 'default' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                }`}
-              >
-                默认风格
-              </button>
-              <button
-                onClick={() => setUiStyle('pixel')}
-                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
-                  uiStyle === 'pixel' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                }`}
-              >
-                像素风格
-              </button>
-              <button
-                onClick={() => setUiStyle('apple')}
-                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
-                  uiStyle === 'apple' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
-                }`}
-              >
-                苹果风格
-              </button>
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>UI风格</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setUiStyle('default')}
+                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: uiStyle === 'default' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: uiStyle === 'default' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: uiStyle === 'default' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
+                >
+                  默认风格
+                </button>
+                <button
+                  onClick={() => setUiStyle('pixel')}
+                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: uiStyle === 'pixel' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
+                >
+                  像素风格
+                </button>
+                <button
+                  onClick={() => setUiStyle('apple')}
+                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: uiStyle === 'apple' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
+                >
+                  苹果风格
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>个性化颜色</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                className="w-10 h-10 rounded-full border border-slate-200 cursor-pointer"
-              />
-              <div className="flex-1">
-                <input
-                  type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-                  placeholder="输入颜色代码"
-                />
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>个性化颜色</label>
+              <div className="flex items-center gap-3">
+                <div className="relative w-10 h-10 overflow-hidden">
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="absolute inset-0 w-full h-full cursor-pointer"
+                    style={{ appearance: 'none', border: 'none' }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                    placeholder="输入颜色代码"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-6 flex flex-col gap-2">
-        <button
-          className="w-full rounded-xl py-2 text-sm text-white active:scale-95 transition-transform"
-          style={{
-            backgroundColor: COLORS.primaryLight,
-            borderColor: COLORS.border,
-            borderWidth: "1px",
-            borderStyle: "solid",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-            color: COLORS.textDark
-          }}
-          onClick={onExportCsv}
-        >
-          📤 导出 CSV 记录
-        </button>
-        <button
-          className="w-full rounded-xl border border-rose-200 bg-rose-50 py-2 text-sm text-rose-600 active:scale-95 transition-transform"
-          onClick={() => {
-            if (window.confirm(`确定要清空所有记录吗？共 ${recordsCount} 条记录，此操作不可恢复。`)) {
-              onResetAll();
-            }
-          }}
-        >
-          🧹 清空所有记录
-        </button>
-      </div>
-    </section>
-  );
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            className="w-full rounded-xl py-2 text-sm active:scale-95 transition-transform"
+            style={{
+              backgroundColor: `${accentColor}40`,
+              borderColor: accentColor,
+              borderWidth: "1px",
+              borderStyle: "solid",
+              backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
+              color: getContrastColor(accentColor)
+            }}
+            onClick={onExportCsv}
+          >
+            📤 导出 CSV 记录
+          </button>
+          <button
+            className={`w-full rounded-xl border ${currentTheme.colors.dangerBorder} ${currentTheme.colors.danger} py-2 text-sm text-rose-600 active:scale-95 transition-transform`}
+            onClick={() => {
+              if (window.confirm(`确定要清空所有记录吗？共 ${recordsCount} 条记录，此操作不可恢复。`)) {
+                onResetAll();
+              }
+            }}
+          >
+            🧹 清空所有记录
+          </button>
+        </div>
+      </section>
+    );
+  } catch (error) {
+    console.error('SettingsTab error:', error);
+    return (
+      <section className="space-y-4 p-4">
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚠️ 加载失败</h2>
+          <p className={`mt-2 text-sm ${currentTheme.colors.textSecondary}`}>个人设置页面加载时发生错误，请刷新页面重试。</p>
+        </div>
+      </section>
+    );
+  }
 };
 
-const CustomDrinkEditor = ({ drink, onSave, onCancel }) => {
+const CustomDrinkEditor = ({ drink, onSave, onCancel, currentTheme, accentColor }) => {
   const [name, setName] = useState(drink?.name || "");
   const [caffeine, setCaffeine] = useState(drink?.caffeine?.toString() || "");
   const [sugar, setSugar] = useState(drink?.sugar?.toString() || "");
@@ -1617,66 +1743,70 @@ const CustomDrinkEditor = ({ drink, onSave, onCancel }) => {
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         饮品名称
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
           placeholder="例如：蜂蜜茶"
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         咖啡因含量（mg）
         <input
           type="number"
           min="0"
           value={caffeine}
           onChange={(e) => setCaffeine(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         糖分含量（g）
         <input
           type="number"
           min="0"
           value={sugar}
           onChange={(e) => setSugar(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         热量含量（kcal）
         <input
           type="number"
           min="0"
           value={calories}
           onChange={(e) => setCalories(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         脂肪含量（g）
         <input
           type="number"
           min="0"
           value={fat}
           onChange={(e) => setFat(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
       <div className="flex gap-2 pt-2">
         <button
           onClick={onCancel}
-          className="flex-1 py-2 rounded-lg bg-slate-200 text-slate-500 text-sm"
+          className={`flex-1 py-2 rounded-lg ${currentTheme.colors.card} ${currentTheme.colors.textSecondary} text-sm ${currentTheme.colors.border}`}
         >
           取消
         </button>
         <button
           onClick={handleSave}
-          className="flex-1 py-2 rounded-lg bg-[#b08968] text-white text-sm"
+          className={`flex-1 py-2 rounded-lg text-sm`}
+          style={{
+            backgroundColor: accentColor,
+            color: getContrastColor(accentColor)
+          }}
         >
           保存
         </button>
@@ -1685,7 +1815,7 @@ const CustomDrinkEditor = ({ drink, onSave, onCancel }) => {
   );
 };
 
-const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentTheme, currentUiStyle }) => {
+const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentTheme, currentUiStyle, accentColor }) => {
   const [editingDrink, setEditingDrink] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
@@ -1712,30 +1842,33 @@ const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentThem
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-slate-800">自定义饮品</h3>
+        <h3 className={`text-sm font-medium ${currentTheme.colors.text}`}>自定义饮品</h3>
         <button
           onClick={handleAdd}
-          className="text-xs text-[#b08968] hover:underline"
+          className={`text-xs hover:underline`}
+          style={{
+            color: accentColor
+          }}
         >
           添加饮品
         </button>
       </div>
       {customDrinks.length === 0 ? (
-        <p className="text-xs text-slate-500">暂无自定义饮品</p>
+        <p className={`text-xs ${currentTheme.colors.textLight}`}>暂无自定义饮品</p>
       ) : (
         <div className="space-y-2">
           {customDrinks.map((drink) => (
-            <div key={drink.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+            <div key={drink.id} className={`flex justify-between items-center p-2 ${currentTheme.colors.card} rounded-lg ${currentTheme.colors.border}`}>
               <div>
-                <p className="text-sm font-medium text-slate-800">{drink.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{drink.name}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>
                   咖啡因: {drink.caffeine}mg, 糖分: {drink.sugar}g, 热量: {drink.calories}kcal, 脂肪: {drink.fat}g
                 </p>
               </div>
               <div className="flex gap-1">
                 <button
                   onClick={() => handleEdit(drink)}
-                  className="text-xs text-[#b08968] hover:underline"
+                  className={`text-xs text-[${accentColor}] hover:underline`}
                 >
                   编辑
                 </button>
@@ -1751,8 +1884,8 @@ const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentThem
         </div>
       )}
       {showEditor && (
-        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
-          <h4 className="text-sm font-medium text-slate-800 mb-2">
+        <div className={`mt-3 p-3 ${currentTheme.colors.card} rounded-lg ${currentTheme.colors.border}`}>
+          <h4 className={`text-sm font-medium mb-2`} style={{ color: accentColor }}>
             {editingDrink ? "编辑饮品" : "添加自定义饮品"}
           </h4>
           <CustomDrinkEditor
@@ -1762,6 +1895,8 @@ const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentThem
               setShowEditor(false);
               setEditingDrink(null);
             }}
+            currentTheme={currentTheme}
+            accentColor={accentColor}
           />
         </div>
       )}
@@ -1769,7 +1904,7 @@ const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentThem
   );
 };
 
-const IngredientEditor = ({ ingredient, onSave, onCancel }) => {
+const IngredientEditor = ({ ingredient, onSave, onCancel, currentTheme, accentColor }) => {
   const [name, setName] = useState(ingredient?.name || "");
   const [caffeine, setCaffeine] = useState(ingredient?.caffeine?.toString() || "");
   const [sugar, setSugar] = useState(ingredient?.sugar?.toString() || "");
@@ -1792,66 +1927,70 @@ const IngredientEditor = ({ ingredient, onSave, onCancel }) => {
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         配料名称
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
           placeholder="例如：珍珠、奶盖"
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         咖啡因含量（mg）
         <input
           type="number"
           min="0"
           value={caffeine}
           onChange={(e) => setCaffeine(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         糖分含量（g）
         <input
           type="number"
           min="0"
           value={sugar}
           onChange={(e) => setSugar(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         热量含量（kcal）
         <input
           type="number"
           min="0"
           value={calories}
           onChange={(e) => setCalories(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
-      <label className="block text-xs text-slate-600">
+      <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
         脂肪含量（g）
         <input
           type="number"
           min="0"
           value={fat}
           onChange={(e) => setFat(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
         />
       </label>
       <div className="flex gap-2 pt-2">
         <button
           onClick={onCancel}
-          className="flex-1 py-2 rounded-lg bg-slate-200 text-slate-500 text-sm"
+          className={`flex-1 py-2 rounded-lg ${currentTheme.colors.card} ${currentTheme.colors.textSecondary} text-sm ${currentTheme.colors.border}`}
         >
           取消
         </button>
         <button
           onClick={handleSave}
-          className="flex-1 py-2 rounded-lg bg-[#b08968] text-white text-sm"
+          className={`flex-1 py-2 rounded-lg text-sm`}
+          style={{
+            backgroundColor: accentColor,
+            color: getContrastColor(accentColor)
+          }}
         >
           保存
         </button>
@@ -1860,7 +1999,7 @@ const IngredientEditor = ({ ingredient, onSave, onCancel }) => {
   );
 };
 
-const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme, currentUiStyle }) => {
+const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme, currentUiStyle, accentColor }) => {
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
@@ -1887,30 +2026,33 @@ const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme,
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-slate-800">配料管理</h3>
+        <h3 className={`text-sm font-medium ${currentTheme.colors.text}`}>配料管理</h3>
         <button
           onClick={handleAdd}
-          className="text-xs text-[#b08968] hover:underline"
+          className={`text-xs hover:underline`}
+          style={{
+            color: accentColor
+          }}
         >
           添加配料
         </button>
       </div>
       {ingredients.length === 0 ? (
-        <p className="text-xs text-slate-500">暂无配料</p>
+        <p className={`text-xs ${currentTheme.colors.textLight}`}>暂无配料</p>
       ) : (
         <div className="space-y-2">
           {ingredients.map((ingredient) => (
-            <div key={ingredient.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+            <div key={ingredient.id} className={`flex justify-between items-center p-2 ${currentTheme.colors.card} rounded-lg ${currentTheme.colors.border}`}>
               <div>
-                <p className="text-sm font-medium text-slate-800">{ingredient.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{ingredient.name}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>
                   咖啡因: {ingredient.caffeine}mg, 糖分: {ingredient.sugar}g, 热量: {ingredient.calories}kcal, 脂肪: {ingredient.fat}g
                 </p>
               </div>
               <div className="flex gap-1">
                 <button
                   onClick={() => handleEdit(ingredient)}
-                  className="text-xs text-[#b08968] hover:underline"
+                  className={`text-xs text-[${accentColor}] hover:underline`}
                 >
                   编辑
                 </button>
@@ -1926,8 +2068,8 @@ const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme,
         </div>
       )}
       {showEditor && (
-        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
-          <h4 className="text-sm font-medium text-slate-800 mb-2">
+        <div className={`mt-3 p-3 ${currentTheme.colors.card} rounded-lg ${currentTheme.colors.border}`}>
+          <h4 className={`text-sm font-medium mb-2`} style={{ color: accentColor }}>
             {editingIngredient ? "编辑配料" : "添加配料"}
           </h4>
           <IngredientEditor
@@ -1937,6 +2079,8 @@ const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme,
               setShowEditor(false);
               setEditingIngredient(null);
             }}
+            currentTheme={currentTheme}
+            accentColor={accentColor}
           />
         </div>
       )}
@@ -1944,8 +2088,8 @@ const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme,
   );
 };
 
-const ProfileEditor = ({ profile, setProfile, onAvatarUpload, currentTheme, currentUiStyle }) => (
-  <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
+const ProfileEditor = ({ profile, setProfile, onAvatarUpload, currentTheme, currentUiStyle, accentColor, getContrastColor }) => (
+  <div className={`mt-4 space-y-3 rounded-xl ${currentTheme.colors.card} p-3 ${currentTheme.colors.border}`}>
     <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       头像 Emoji/字符（例如 😀、A、D）
       <input
@@ -1968,7 +2112,7 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload, currentTheme, curr
         type="file"
         accept="image/*"
         onChange={onAvatarUpload}
-        className={`mt-1 block w-full text-xs ${currentTheme.colors.textSecondary} file:mr-3 file:rounded-md file:border-0 file:bg-[rgba(176,137,104,0.4)] file:px-3 file:py-2 file:text-xs file:text-[#3C281E]`}
+        className={`mt-1 block w-full text-xs ${currentTheme.colors.textSecondary} file:mr-3 file:rounded-md file:border-0 file:bg-[${accentColor}40] file:px-3 file:py-2 file:text-xs file:text-[${getContrastColor(accentColor)}]`}
       />
     </label>
     <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
@@ -2155,7 +2299,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
         <>
           <ul className="space-y-2">
             {displayedRecords.map((r) => (
-              <li key={r.id} className={`${currentUiStyle.cardRadius} bg-slate-100 px-3 py-2 transition hover:bg-slate-200`}>
+              <li key={r.id} className={`${currentUiStyle.cardRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 transition hover:bg-slate-200`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`font-medium ${currentTheme.colors.text}`}>
@@ -2178,7 +2322,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
                     ✏️ 编辑
                   </button>
                   <button
-                    className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 transition-colors duration-300 hover:bg-rose-50"
+                    className={`rounded-md border ${currentTheme.colors.dangerBorder} px-2 py-1 text-xs text-rose-600 transition-colors duration-300 ${currentTheme.colors.danger}`}
                     onClick={() => onDelete(r.id)}
                   >
                     🗑️ 删除
@@ -2190,7 +2334,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
           {hasMore && shouldLimit && (
             <button
               onClick={() => setShowAll(true)}
-              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} bg-slate-100 py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
+              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
             >
               加载更多 ({sortedRecords.length - DEFAULT_DISPLAY_LIMIT} 条)
             </button>
@@ -2198,7 +2342,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
           {!shouldLimit && !filterDate && hasMore && (
             <button
               onClick={() => setShowAll(false)}
-              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} bg-slate-100 py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
+              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
             >
               收起 (显示最近 {DEFAULT_DISPLAY_LIMIT} 条)
             </button>
@@ -2236,7 +2380,8 @@ const PickerModal = ({
   selectedIngredients = [],
   onIngredientsChange,
   currentTheme,
-  currentUiStyle
+  currentUiStyle,
+  accentColor
 }) => {
   const [isIOS, setIsIOS] = useState(false);
   
@@ -2314,9 +2459,12 @@ const PickerModal = ({
               <button
                 key={t}
                 onClick={() => onTypeChange(t)}
-                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                  type === t ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                }`}
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                style={{
+                  backgroundColor: type === t ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                  color: type === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                  borderColor: type === t ? accentColor : currentTheme.colors.border.replace('border-', '')
+                }}
               >
                 {t}
               </button>
@@ -2325,9 +2473,12 @@ const PickerModal = ({
               <button
                 key="custom"
                 onClick={() => onTypeChange("自定义")}
-                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                  type === "自定义" ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                }`}
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                style={{
+                  backgroundColor: type === "自定义" ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                  color: type === "自定义" ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                  borderColor: type === "自定义" ? accentColor : currentTheme.colors.border.replace('border-', '')
+                }}
               >
                 自定义
               </button>
@@ -2341,9 +2492,12 @@ const PickerModal = ({
                   <button
                     key={drink.id}
                     onClick={() => onTypeChange(drink.name)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      type === drink.name ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: type === drink.name ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: type === drink.name ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: type === drink.name ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {drink.name}
                   </button>
@@ -2362,9 +2516,12 @@ const PickerModal = ({
                   <button
                     key={s}
                     onClick={() => onCupSizeChange(s)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      cupSize === s ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: cupSize === s ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: cupSize === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: cupSize === s ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {s}
                   </button>
@@ -2378,9 +2535,12 @@ const PickerModal = ({
                   <button
                     key={i}
                     onClick={() => onIceChange(i)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      ice === i ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: ice === i ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: ice === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: ice === i ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {i}
                   </button>
@@ -2394,9 +2554,12 @@ const PickerModal = ({
                   <button
                     key={s}
                     onClick={() => onSugarChange(s)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      sugar === s ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: sugar === s ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: sugar === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: sugar === s ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {s}
                   </button>
@@ -2415,9 +2578,12 @@ const PickerModal = ({
                   <button
                     key={i}
                     onClick={() => onAlcoholIceChange(i)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      alcoholIce === i ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: alcoholIce === i ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: alcoholIce === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: alcoholIce === i ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {i}
                   </button>
@@ -2447,9 +2613,12 @@ const PickerModal = ({
                   <button
                     key={t}
                     onClick={() => onWaterTempChange(t)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                      waterTemp === t ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                    }`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: waterTemp === t ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                      color: waterTemp === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                      borderColor: waterTemp === t ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    }}
                   >
                     {t}
                   </button>
@@ -2473,7 +2642,7 @@ const PickerModal = ({
         {/* 配料选择 */}
         {(isCoffeeOrMilk || customDrink) && ingredients && ingredients.length > 0 && (
           <div>
-            <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>添加配料</p>
+            <p className={`mb-2 text-sm`} style={{ color: accentColor }}>添加配料</p>
             <div className="flex gap-2 flex-wrap">
               {ingredients.map((ingredient) => (
                 <button
@@ -2488,9 +2657,12 @@ const PickerModal = ({
                       }
                     }
                   }}
-                  className={`py-2 px-3 ${currentUiStyle.buttonRadius} border text-sm transition ${
-                    selectedIngredients.some(item => item.id === ingredient.id) ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
-                  }`}
+                  className={`py-2 px-3 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                  style={{
+                    backgroundColor: selectedIngredients.some(item => item.id === ingredient.id) ? accentColor : currentTheme.colors.card.replace('bg-', ''),
+                    color: selectedIngredients.some(item => item.id === ingredient.id) ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
+                    borderColor: selectedIngredients.some(item => item.id === ingredient.id) ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  }}
                 >
                   {ingredient.name}
                 </button>
@@ -2542,7 +2714,14 @@ const PickerModal = ({
           <button onClick={onClose} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} ${currentTheme.colors.textLight} active:scale-95 transition hover:bg-slate-200`}>
             取消
           </button>
-          <button onClick={onConfirm} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.accent} text-white active:scale-95 transition hover:bg-[#9c7a5f]`}>
+          <button 
+            onClick={onConfirm} 
+            className={`flex-1 py-2 ${currentUiStyle.buttonRadius} active:scale-95 transition hover:bg-opacity-90`}
+            style={{
+              backgroundColor: accentColor,
+              color: getContrastColor(accentColor)
+            }}
+          >
             确认记录
           </button>
         </div>
@@ -3237,8 +3416,8 @@ function App() {
 
   return (
     <div className={`mx-auto flex min-h-screen w-full max-w-md flex-col transition-colors duration-300 ${currentTheme.colors.background} ${theme === 'dark' ? 'dark' : ''}`}>
-      <header className={`sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card}`}>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} className={`text-xl transition-colors duration-300 ${currentTheme.colors.text}`}>
+      <header className={`sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card} py-4`}>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} className={`text-2xl transition-colors duration-300 ${currentTheme.colors.text} text-center`}>
           MyDrink
         </h1>
       </header>
@@ -3272,6 +3451,7 @@ function App() {
             userBloodSugar={Number(profile.bloodSugar) || 0}
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
+            accentColor={accentColor}
           />
         )}
 
@@ -3289,6 +3469,7 @@ function App() {
             onDelete={deleteRecord}
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
+            accentColor={accentColor}
           />
         )}
 
@@ -3335,6 +3516,7 @@ function App() {
             setAccentColor={setAccentColor}
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
+            getContrastColor={getContrastColor}
           />
         )}
       </main>
@@ -3342,12 +3524,12 @@ function App() {
       <nav className={`fixed bottom-0 left-0 right-0 mx-auto flex w-full max-w-md backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card}`}>
         {TABS.map((tab) => (
           <button
-            key={tab}
-            className={`flex-1 py-2 text-xs font-medium transition-colors duration-300 ${
-              activeTab === tab ? currentTheme.colors.text : currentTheme.colors.textLight
-            }`}
-            onClick={() => setActiveTab(tab)}
-          >
+              key={tab}
+              className={`flex-1 py-2 text-xs font-medium transition-colors duration-300 ${
+                activeTab === tab ? `text-[${accentColor}]` : currentTheme.colors.textLight
+              }`}
+              onClick={() => setActiveTab(tab)}
+            >
             <span className="block text-base">{TAB_ICONS[tab]}</span>
             <span>{tab}</span>
           </button>
@@ -3381,6 +3563,7 @@ function App() {
         onIngredientsChange={(ingredients) => setPickerState((prev) => ({ ...prev, selectedIngredients: ingredients }))}
         currentTheme={currentTheme}
         currentUiStyle={currentUiStyle}
+        accentColor={accentColor}
       />
     </div>
   );
