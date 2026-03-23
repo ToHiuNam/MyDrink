@@ -22,7 +22,83 @@ const SETTINGS_KEY = "mydrink-settings-v1";
 const PROFILE_KEY = "mydrink-profile-v1";
 const CUSTOM_DRINKS_KEY = "mydrink-custom-drinks-v1";
 const INGREDIENTS_KEY = "mydrink-ingredients-v1";
+const THEME_KEY = "mydrink-theme-v1";
 const DRINK_TYPES = ["咖啡", "奶茶", "酒", "水", "茶", "果汁", "碳酸饮料"];
+
+// 主题配置
+const THEMES = {
+  light: {
+    name: "浅色模式",
+    colors: {
+      background: "bg-gradient-to-b from-indigo-50 via-slate-100 to-slate-100",
+      card: "bg-white",
+      text: "text-slate-800",
+      textSecondary: "text-slate-600",
+      textLight: "text-slate-500",
+      border: "border-slate-200",
+      borderLight: "border-slate-100",
+      cardBorder: "ring-indigo-50",
+      accent: "bg-[#b08968]",
+      accentText: "text-[#3C281E]",
+      accentLight: "bg-[rgba(176,137,104,0.4)]",
+      warning: "bg-amber-50",
+      warningBorder: "border-amber-200",
+      info: "bg-indigo-50",
+      infoBorder: "border-indigo-200",
+      danger: "bg-rose-50",
+      dangerBorder: "border-rose-200",
+      progress: "bg-[#3b82f6]",
+      pie: {
+        咖啡: "#9c7a5f",
+        奶茶: "#b08968",
+        酒: "#ffc02e",
+        水: "#90ccfb",
+        茶: "#8caf92",
+        果汁: "#ff7b54",
+        碳酸饮料: "#4dabf7"
+      }
+    }
+  },
+  dark: {
+    name: "深色模式",
+    colors: {
+      background: "bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900",
+      card: "bg-gray-800",
+      text: "text-gray-100",
+      textSecondary: "text-gray-300",
+      textLight: "text-gray-400",
+      border: "border-gray-700",
+      borderLight: "border-gray-600",
+      cardBorder: "ring-gray-700",
+      accent: "bg-[#c8a98e]",
+      accentText: "text-[#1a110d]",
+      accentLight: "bg-[rgba(200,169,142,0.4)]",
+      warning: "bg-amber-900/30",
+      warningBorder: "border-amber-800/50",
+      info: "bg-indigo-900/30",
+      infoBorder: "border-indigo-800/50",
+      danger: "bg-rose-900/30",
+      dangerBorder: "border-rose-800/50",
+      progress: "bg-[#60a5fa]",
+      pie: {
+        咖啡: "#c8a07c",
+        奶茶: "#d4a76a",
+        酒: "#ffd06e",
+        水: "#a8d8fb",
+        茶: "#a0c9a6",
+        果汁: "#ff9b7a",
+        碳酸饮料: "#6db6fa"
+      }
+    }
+  }
+};
+
+// UI 风格配置
+const UI_STYLES = {
+  default: { name: "默认风格", cardRadius: "rounded-2xl", buttonRadius: "rounded-xl", shadow: "shadow-sm" },
+  pixel: { name: "像素风格", cardRadius: "rounded-none", buttonRadius: "rounded-none", shadow: "shadow-none border-2 border-gray-300 dark:border-gray-600" },
+  apple: { name: "苹果风格", cardRadius: "rounded-3xl", buttonRadius: "rounded-2xl", shadow: "shadow-md" }
+};
 
 // 杯型与系数（中杯1.0，大杯1.2，超大杯1.3）
 const CUP_SIZES = ["中杯", "大杯", "超大杯"];
@@ -271,7 +347,9 @@ const HealthAssistant = ({
   totalFat,
   dailySugarLimit,
   dailyCaloriesLimit,
-  dailyFatLimit
+  dailyFatLimit,
+  currentTheme,
+  currentUiStyle
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -436,15 +514,15 @@ const HealthAssistant = ({
   }, [userWeight, userAge, userBloodSugar, totalSugar, totalCalories, totalFat]);
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mb-4">
-      <h3 className="text-base font-semibold text-slate-800 mb-3">💡 健康助手</h3>
+    <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mb-4 transition-all duration-300`}>
+      <h3 className={`text-base font-semibold ${currentTheme.colors.text} mb-3`}>💡 健康助手</h3>
 
       <div className="bg-amber-50 rounded-xl p-3 mb-4 border border-amber-200">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">📋</span>
-          <h4 className="font-medium text-slate-800">今日摄入建议</h4>
+          <h4 className={`font-medium ${currentTheme.colors.text}`}>今日摄入建议</h4>
         </div>
-        <ul className="space-y-1 text-sm text-slate-700">
+        <ul className={`space-y-1 text-sm ${currentTheme.colors.textSecondary}`}>
           {healthAdvice.map((advice, idx) => (
             <li key={idx}>{advice}</li>
           ))}
@@ -454,37 +532,37 @@ const HealthAssistant = ({
       <div className="bg-indigo-50 rounded-xl p-3 mb-4 border border-indigo-200">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">📈</span>
-          <h4 className="font-medium text-slate-800">健康趋势关联</h4>
+          <h4 className={`font-medium ${currentTheme.colors.text}`}>健康趋势关联</h4>
         </div>
-        <p className="text-xs text-slate-600 mb-3">
+        <p className={`text-xs ${currentTheme.colors.textLight} mb-3`}>
           定期在「个人设置」中更新体重和血糖，系统将根据您的饮品记录分析健康趋势。
         </p>
         <div className="space-y-2">
           {userWeight > 0 && (
             <div className="flex justify-between text-xs">
-              <span>体重与饮水关联</span>
-              <span className="font-medium">
+              <span className={currentTheme.colors.textSecondary}>体重与饮水关联</span>
+              <span className={`font-medium ${currentTheme.colors.text}`}>
                 {totalWater >= userWeight * 30 ? "✅ 达标" : "⚠️ 不足"}
               </span>
             </div>
           )}
           {userBloodSugar > 0 && (
             <div className="flex justify-between text-xs">
-              <span>血糖与糖分摄入</span>
-              <span className="font-medium">
+              <span className={currentTheme.colors.textSecondary}>血糖与糖分摄入</span>
+              <span className={`font-medium ${currentTheme.colors.text}`}>
                 {userBloodSugar < 6.1 && totalSugar <= dailySugarLimit ? "✅ 正常" : "⚠️ 需注意"}
               </span>
             </div>
           )}
           <div className="flex justify-between text-xs">
-            <span>咖啡因与睡眠建议</span>
-            <span className="font-medium">
+            <span className={currentTheme.colors.textSecondary}>咖啡因与睡眠建议</span>
+            <span className={`font-medium ${currentTheme.colors.text}`}>
               {currentTime.getHours() >= 20 && caffeineRemaining > 50 ? "⚠️ 避免摄入" : "✅ 可适量"}
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span>酒精代谢状态</span>
-            <span className="font-medium">
+            <span className={currentTheme.colors.textSecondary}>酒精代谢状态</span>
+            <span className={`font-medium ${currentTheme.colors.text}`}>
               {alcoholBAC > 0.03 ? "⚠️ 不宜驾驶" : "✅ 安全"}
             </span>
           </div>
@@ -495,28 +573,28 @@ const HealthAssistant = ({
         {waterReminder && (
           <div className="flex items-start gap-2 text-sm">
             <span className="text-blue-500">💧</span>
-            <p className="text-slate-700">{waterReminder}</p>
+            <p className={currentTheme.colors.textSecondary}>{waterReminder}</p>
           </div>
         )}
         <div className="flex items-start gap-2 text-sm">
           <span className="text-orange-500">☕️</span>
-          <p className="text-slate-700">{caffeineMessage || "今日无咖啡因摄入"}</p>
+          <p className={currentTheme.colors.textSecondary}>{caffeineMessage || "今日无咖啡因摄入"}</p>
         </div>
         <div className="flex items-start gap-2 text-sm">
           <span className="text-amber-500">🍺</span>
-          <p className="text-slate-700">{alcoholMessage || "今日无酒精摄入"}</p>
+          <p className={currentTheme.colors.textSecondary}>{alcoholMessage || "今日无酒精摄入"}</p>
         </div>
         <div className="flex items-start gap-2 text-sm">
           <span className="text-pink-500">🍬</span>
-          <p className="text-slate-700">{sugarMessage || "今日无糖分摄入"}</p>
+          <p className={currentTheme.colors.textSecondary}>{sugarMessage || "今日无糖分摄入"}</p>
         </div>
         <div className="flex items-start gap-2 text-sm">
           <span className="text-red-500">🔥</span>
-          <p className="text-slate-700">{caloriesMessage || "今日无热量摄入"}</p>
+          <p className={currentTheme.colors.textSecondary}>{caloriesMessage || "今日无热量摄入"}</p>
         </div>
         <div className="flex items-start gap-2 text-sm">
           <span className="text-green-500">🥑</span>
-          <p className="text-slate-700">{fatMessage || "今日无脂肪摄入"}</p>
+          <p className={currentTheme.colors.textSecondary}>{fatMessage || "今日无脂肪摄入"}</p>
         </div>
       </div>
     </div>
@@ -548,7 +626,9 @@ const RecordTab = ({
   userGender,
   todayRecords,
   userAge,
-  userBloodSugar
+  userBloodSugar,
+  currentTheme,
+  currentUiStyle
 }) => {
   const scrollContainerRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -594,16 +674,16 @@ const RecordTab = ({
         <style>{`div::-webkit-scrollbar { display: none; }`}</style>
         <div className="flex">
           <div className="flex-shrink-0 w-full snap-start">
-            <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
-              <p className="text-sm text-slate-500">💧 今天已摄入水分</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalWater} ml</p>
-              <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
+            <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+              <p className={`text-sm ${currentTheme.colors.textLight}`}>💧 今天已摄入水分</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalWater} ml</p>
+              <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : currentTheme.colors.textLight}`}>
                 每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
               </p>
               <div className="mt-2">
                 <div className="flex justify-between text-sm mb-1">
-                  <span>饮水进度</span>
-                  <span>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
+                  <span className={currentTheme.colors.textSecondary}>饮水进度</span>
+                  <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2">
                   <div
@@ -612,34 +692,34 @@ const RecordTab = ({
                   />
                 </div>
               </div>
-              <p className="mt-4 text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCaffeine} mg</p>
-              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : "text-slate-500"}`}>
+              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>☕️ 今天已摄入咖啡因</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalCaffeine} mg</p>
+              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
                 每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
               </p>
-              <p className="mt-4 text-sm text-slate-500">🍬 今天已摄入糖分</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalSugar} g</p>
-              <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : "text-slate-500"}`}>
+              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🍬 今天已摄入糖分</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalSugar} g</p>
+              <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
                 每日糖分上限 {dailySugarLimit} g {exceedSugarLimit ? "（已超出）" : ""}
               </p>
-              <p className="mt-4 text-sm text-slate-500">🍺 今天已摄入酒精</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalAlcohol} mg</p>
-              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : "text-slate-500"}`}>
+              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🍺 今天已摄入酒精</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalAlcohol} mg</p>
+              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
                 每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
               </p>
-              <p className="mt-4 text-sm text-slate-500">🔥 今天已摄入热量</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCalories} kcal</p>
-              <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : "text-slate-500"}`}>
+              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🔥 今天已摄入热量</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalCalories} kcal</p>
+              <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
                 每日热量上限 {dailyCaloriesLimit} kcal {exceedCaloriesLimit ? "（已超出）" : ""}
               </p>
-              <p className="mt-4 text-sm text-slate-500">🥑 今天已摄入脂肪</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalFat} g</p>
-              <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : "text-slate-500"}`}>
+              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🥑 今天已摄入脂肪</p>
+              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalFat} g</p>
+              <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
                 每日脂肪上限 {dailyFatLimit} g {exceedFatLimit ? "（已超出）" : ""}
               </p>
-              <div className="mt-4 pt-2 border-t border-slate-100">
-                <p className="text-xs text-slate-500">🎯 今日剩余</p>
-                <RemainingItem label="水分" value={totalWater} limit={dailyWaterTarget} unit="ml" normalColor="text-slate-700" />
+              <div className={`mt-4 pt-2 border-t ${currentTheme.colors.border}`}>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>🎯 今日剩余</p>
+                <RemainingItem label="水分" value={totalWater} limit={dailyWaterTarget} unit="ml" normalColor={currentTheme.colors.textSecondary} />
                 <RemainingItem label="咖啡因" value={totalCaffeine} limit={dailyLimit} unit="mg" />
                 <RemainingItem label="糖分" value={totalSugar} limit={dailySugarLimit} unit="g" />
                 <RemainingItem label="酒精" value={totalAlcohol} limit={dailyAlcoholLimit} unit="mg" />
@@ -650,20 +730,22 @@ const RecordTab = ({
           </div>
           <div className="flex-shrink-0 w-full snap-start px-2">
             <HealthAssistant
-              todayRecords={todayRecords}
-              userWeight={userWeight}
-              userGender={userGender}
-              dailyWaterTarget={dailyWaterTarget}
-              totalWater={totalWater}
-              userAge={userAge}
-              userBloodSugar={userBloodSugar}
-              totalSugar={totalSugar}
-              totalCalories={totalCalories}
-              totalFat={totalFat}
-              dailySugarLimit={dailySugarLimit}
-              dailyCaloriesLimit={dailyCaloriesLimit}
-              dailyFatLimit={dailyFatLimit}
-            />
+            todayRecords={todayRecords}
+            userWeight={userWeight}
+            userGender={userGender}
+            dailyWaterTarget={dailyWaterTarget}
+            totalWater={totalWater}
+            userAge={userAge}
+            userBloodSugar={userBloodSugar}
+            totalSugar={totalSugar}
+            totalCalories={totalCalories}
+            totalFat={totalFat}
+            dailySugarLimit={dailySugarLimit}
+            dailyCaloriesLimit={dailyCaloriesLimit}
+            dailyFatLimit={dailyFatLimit}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
+          />
           </div>
         </div>
       </div>
@@ -698,7 +780,9 @@ const TrendTab = ({
   filterDate,
   setFilterDate,
   onEdit,
-  onDelete
+  onDelete,
+  currentTheme,
+  currentUiStyle
 }) => {
   const [caffeineRange, setCaffeineRange] = useState("今日");
   const [alcoholRange, setAlcoholRange] = useState("今日");
@@ -845,9 +929,9 @@ const TrendTab = ({
   const renderTrendCard = (title, unit, chartData, range, setRange, fieldColor = COLORS.primary) => {
     return (
       <div className="flex-shrink-0 w-full snap-start">
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
           <div className="mb-2 flex items-center gap-2">
-            <h2 className="text-base font-semibold text-slate-800 flex-shrink-0">
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>
               📊 {title}趋势
             </h2>
             <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
@@ -855,8 +939,8 @@ const TrendTab = ({
                 {TREND_RANGES.map((r) => (
                   <button
                     key={r}
-                    className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 ${
-                      range === r ? "bg-white text-[#3C281E] shadow-sm" : "text-slate-500"
+                    className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
+                      range === r ? `bg-white ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
                     }`}
                     onClick={() => setRange(r)}
                   >
@@ -876,8 +960,8 @@ const TrendTab = ({
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="time" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <XAxis dataKey="time" tick={{ fontSize: 12, fill: currentTheme.colors.textSecondary }} />
+                <YAxis tick={{ fontSize: 12, fill: currentTheme.colors.textSecondary }} />
                 <Tooltip />
                 <Area
                   type="monotone"
@@ -925,7 +1009,7 @@ const TrendTab = ({
     }, [monthRecords, daysInMonth]);
 
     const getBgColorStyle = (count) => {
-      if (count === 0) return "white";
+      if (count === 0) return currentTheme.colors.card;
       if (maxCount === 0) return "#f3f4f6";
       const intensity = count / maxCount;
       const saturation = 30 + intensity * 40;
@@ -954,46 +1038,46 @@ const TrendTab = ({
     }
 
     return (
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mb-4">
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mb-4 transition-all duration-300`}>
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={prevMonth}
-            className="px-3 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
+            className={`px-3 py-1 rounded-md bg-slate-100 ${currentTheme.colors.textSecondary} hover:bg-slate-200 transition-colors duration-300`}
           >
             ◀
           </button>
-          <h3 className="text-lg font-semibold text-slate-800">
+          <h3 className={`text-lg font-semibold ${currentTheme.colors.text}`}>
             {currentDate.getFullYear()}年 {currentDate.getMonth() + 1}月
           </h3>
           <button
             onClick={nextMonth}
-            className="px-3 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200"
+            className={`px-3 py-1 rounded-md bg-slate-100 ${currentTheme.colors.textSecondary} hover:bg-slate-200 transition-colors duration-300`}
           >
             ▶
           </button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 mb-2">
+        <div className={`grid grid-cols-7 gap-1 text-center text-xs ${currentTheme.colors.textLight} mb-2`}>
           {["日", "一", "二", "三", "四", "五", "六"].map(weekday => (
             <div key={weekday}>{weekday}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
           {cells.map((cell, idx) => {
-            let bgColor = "white";
+            let bgColor = currentTheme.colors.card;
             if (cell.isCurrentMonth && cell.count > 0) {
               bgColor = getBgColorStyle(cell.count);
             } else if (!cell.isCurrentMonth) {
-              bgColor = "#f9fafb";
+              bgColor = currentTheme.colors.card;
             } else {
-              bgColor = "white";
+              bgColor = currentTheme.colors.card;
             }
             return (
               <div
                 key={idx}
                 className={`
                   aspect-square flex items-center justify-center rounded-lg text-sm
-                  ${!cell.isCurrentMonth ? "text-slate-300" : "text-slate-700"}
-                  border border-slate-100 hover:shadow-md transition
+                  ${!cell.isCurrentMonth ? currentTheme.colors.textLight : currentTheme.colors.text}
+                  border ${currentTheme.colors.border} hover:shadow-md transition
                 `}
                 style={{ backgroundColor: bgColor }}
                 title={`${cell.day}日：${cell.count}杯`}
@@ -1003,7 +1087,7 @@ const TrendTab = ({
             );
           })}
         </div>
-        <div className="mt-3 text-xs text-slate-400 text-center">
+        <div className={`mt-3 text-xs ${currentTheme.colors.textLight} text-center`}>
           颜色越深表示当天记录杯数越多
         </div>
       </div>
@@ -1027,16 +1111,16 @@ const TrendTab = ({
       {hasData ? (
         <>
           <CalendarHeatmap />
-          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
             <div className="mb-2 flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-800 flex-shrink-0">🥤 {getPieTitle()}</h2>
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>🥤 {getPieTitle()}</h2>
               <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
                 <div className="flex gap-1">
                   {TREND_RANGES.map((range) => (
                     <button
                       key={range}
-                      className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 ${
-                        pieRange === range ? "bg-white text-[#3C281E] shadow-sm" : "text-slate-500"
+                      className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
+                        pieRange === range ? `bg-white ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
                       }`}
                       onClick={() => setPieRange(range)}
                     >
@@ -1048,7 +1132,7 @@ const TrendTab = ({
             </div>
             <div style={{ height: "280px" }}>
               {filteredPieData.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                <div className={`flex h-full items-center justify-center text-sm ${currentTheme.colors.textLight}`}>
                   暂无数据
                 </div>
               ) : (
@@ -1065,7 +1149,7 @@ const TrendTab = ({
                       labelLine={false}
                     >
                       {filteredPieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || "#818cf8"} />
+                        <Cell key={`cell-${index}`} fill={currentTheme.colors.pie[entry.name] || "#818cf8"} />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
@@ -1074,6 +1158,7 @@ const TrendTab = ({
                       height={36}
                       margin={{ top: 20 }}
                       wrapperStyle={{ marginTop: "12px" }}
+                      formatter={(value) => <span style={{ color: currentTheme.colors.textSecondary }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1117,6 +1202,8 @@ const TrendTab = ({
         setFilterDate={setFilterDate}
         onEdit={onEdit}
         onDelete={onDelete}
+        currentTheme={currentTheme}
+        currentUiStyle={currentUiStyle}
       />
     </section>
   );
@@ -1156,7 +1243,15 @@ const SettingsTab = ({
   ingredients,
   onAddIngredient,
   onEditIngredient,
-  onDeleteIngredient
+  onDeleteIngredient,
+  theme,
+  setTheme,
+  uiStyle,
+  setUiStyle,
+  accentColor,
+  setAccentColor,
+  currentTheme,
+  currentUiStyle
 }) => {
   // 通用处理函数
   const handleLimitChange = (value, setter, min, max, defaultValue) => {
@@ -1204,11 +1299,11 @@ const SettingsTab = ({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800">👤 个人信息</h2>
+          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
           <button
-            className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600"
+            className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-100`}
             onClick={() => setIsEditingProfile((v) => !v)}
           >
             {isEditingProfile ? "完成" : "编辑"}
@@ -1227,16 +1322,16 @@ const SettingsTab = ({
             </div>
           )}
           <div>
-            <p className="text-sm font-medium text-slate-800">{profile.nickname || "未命名用户"}</p>
-            {profile.bio ? <p className="text-xs text-slate-500">{profile.bio}</p> : null}
+            <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{profile.nickname || "未命名用户"}</p>
+            {profile.bio ? <p className={`text-xs ${currentTheme.colors.textLight}`}>{profile.bio}</p> : null}
           </div>
         </div>
-        <p className="mt-2 text-xs text-slate-500">已连续记录 {streakDays} 天</p>
+        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-          {Number(profile.age) > 0 ? <span>年龄：{profile.age}</span> : null}
-          {Number(profile.weight) > 0 ? <span>体重：{profile.weight} kg</span> : null}
-          {Number(profile.bloodSugar) > 0 ? <span>血糖：{profile.bloodSugar} mmol/L</span> : null}
-          {profile.gender && profile.gender !== "未设置" ? <span>性别：{profile.gender}</span> : null}
+          {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
+          {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
+          {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
+          {profile.gender && profile.gender !== "未设置" ? <span className={currentTheme.colors.textLight}>性别：{profile.gender}</span> : null}
         </div>
 
         {isEditingProfile && (
@@ -1245,18 +1340,20 @@ const SettingsTab = ({
               profile={profile}
               setProfile={setProfile}
               onAvatarUpload={onAvatarUpload}
+              currentTheme={currentTheme}
+              currentUiStyle={currentUiStyle}
             />
             <div>
-              <label className="block text-xs text-slate-600 mb-1">性别</label>
+              <label className={`block text-xs ${currentTheme.colors.textSecondary} mb-1`}>性别</label>
               <div className="flex gap-2">
                 {genderOptions.map(opt => (
                   <button
                     key={opt}
                     onClick={() => handleGenderChange(opt)}
-                    className={`flex-1 py-2 rounded-lg border text-sm ${
+                    className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${
                       profile.gender === opt
-                        ? "bg-[#b08968] text-white border-[#9c7a5f]"
-                        : "bg-white text-slate-600 border-slate-200"
+                        ? `bg-[${accentColor}] text-white border-[${accentColor}]`
+                        : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
                     }`}
                   >
                     {opt}
@@ -1268,34 +1365,34 @@ const SettingsTab = ({
         )}
 
         <div className="mt-4 grid grid-cols-5 gap-2 text-center">
-          <div className="rounded-lg bg-slate-50 py-2">
-            <p className="text-base font-semibold text-slate-800">{recordsCount}</p>
-            <p className="text-xs text-slate-500">总杯数</p>
+          <div className="rounded-lg bg-slate-100 py-2">
+            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{recordsCount}</p>
+            <p className={`text-xs ${currentTheme.colors.textLight}`}>总杯数</p>
           </div>
-          <div className="rounded-lg bg-slate-50 py-2">
-            <p className="text-base font-semibold text-slate-800">{coffeeCount}</p>
-            <p className="text-xs text-slate-500">咖啡</p>
+          <div className="rounded-lg bg-slate-100 py-2">
+            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{coffeeCount}</p>
+            <p className={`text-xs ${currentTheme.colors.textLight}`}>咖啡</p>
           </div>
-          <div className="rounded-lg bg-slate-50 py-2">
-            <p className="text-base font-semibold text-slate-800">{milkTeaCount}</p>
-            <p className="text-xs text-slate-500">奶茶</p>
+          <div className="rounded-lg bg-slate-100 py-2">
+            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{milkTeaCount}</p>
+            <p className={`text-xs ${currentTheme.colors.textLight}`}>奶茶</p>
           </div>
-          <div className="rounded-lg bg-slate-50 py-2">
-            <p className="text-base font-semibold text-slate-800">{alcoholCount}</p>
-            <p className="text-xs text-slate-500">酒</p>
+          <div className="rounded-lg bg-slate-100 py-2">
+            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{alcoholCount}</p>
+            <p className={`text-xs ${currentTheme.colors.textLight}`}>酒</p>
           </div>
-          <div className="rounded-lg bg-slate-50 py-2">
-            <p className="text-base font-semibold text-slate-800">{waterCount}</p>
-            <p className="text-xs text-slate-500">水</p>
+          <div className="rounded-lg bg-slate-100 py-2">
+            <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{waterCount}</p>
+            <p className={`text-xs ${currentTheme.colors.textLight}`}>水</p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
-        <h2 className="text-base font-semibold text-slate-800">⚙️ 个人设置</h2>
-        <p className="mt-2 text-xs text-slate-500">设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+        <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
+        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
         <div className="mt-4 grid grid-cols-2 gap-4">
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日咖啡因上限（mg）
             <input
               type="text"
@@ -1303,10 +1400,10 @@ const SettingsTab = ({
               value={dailyLimit === 0 ? "" : dailyLimit}
               onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailyLimitBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日酒精上限（mg）
             <input
               type="text"
@@ -1314,10 +1411,10 @@ const SettingsTab = ({
               value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
               onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailyAlcoholLimitBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日喝水目标（ml）
             <input
               type="text"
@@ -1325,10 +1422,10 @@ const SettingsTab = ({
               value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
               onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailyWaterTargetBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日糖分上限（g）
             <input
               type="text"
@@ -1336,10 +1433,10 @@ const SettingsTab = ({
               value={dailySugarLimit === 0 ? "" : dailySugarLimit}
               onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailySugarLimitBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日热量上限（kcal）
             <input
               type="text"
@@ -1347,10 +1444,10 @@ const SettingsTab = ({
               value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
               onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailyCaloriesLimitBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
-          <label className="block text-sm text-slate-600">
+          <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
             每日脂肪上限（g）
             <input
               type="text"
@@ -1358,28 +1455,112 @@ const SettingsTab = ({
               value={dailyFatLimit === 0 ? "" : dailyFatLimit}
               onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
               onBlur={handleDailyFatLimitBlur}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+              className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
             />
           </label>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mt-4">
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
         <CustomDrinkManager
           customDrinks={customDrinks}
           onAdd={onAddCustomDrink}
           onEdit={onEditCustomDrink}
           onDelete={onDeleteCustomDrink}
+          currentTheme={currentTheme}
+          currentUiStyle={currentUiStyle}
         />
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mt-4">
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
         <IngredientManager
           ingredients={ingredients}
           onAdd={onAddIngredient}
           onEdit={onEditIngredient}
           onDelete={onDeleteIngredient}
+          currentTheme={currentTheme}
+          currentUiStyle={currentUiStyle}
         />
+      </div>
+
+      <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+        <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>🎨 个性化设置</h2>
+        <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
+        
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>主题模式</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTheme('light')}
+                className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${
+                  theme === 'light' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
+                }`}
+              >
+                浅色模式
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${
+                  theme === 'dark' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
+                }`}
+              >
+                深色模式
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>UI风格</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setUiStyle('default')}
+                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
+                  uiStyle === 'default' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
+                }`}
+              >
+                默认风格
+              </button>
+              <button
+                onClick={() => setUiStyle('pixel')}
+                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
+                  uiStyle === 'pixel' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
+                }`}
+              >
+                像素风格
+              </button>
+              <button
+                onClick={() => setUiStyle('apple')}
+                className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${
+                  uiStyle === 'apple' ? `bg-[${accentColor}] text-white border-[${accentColor}]` : `${currentTheme.colors.card} ${currentTheme.colors.textSecondary} ${currentTheme.colors.border}`
+                }`}
+              >
+                苹果风格
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>个性化颜色</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={accentColor}
+                onChange={(e) => setAccentColor(e.target.value)}
+                className="w-10 h-10 rounded-full border border-slate-200 cursor-pointer"
+              />
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                  placeholder="输入颜色代码"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-2">
@@ -1504,7 +1685,7 @@ const CustomDrinkEditor = ({ drink, onSave, onCancel }) => {
   );
 };
 
-const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete }) => {
+const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete, currentTheme, currentUiStyle }) => {
   const [editingDrink, setEditingDrink] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
@@ -1679,7 +1860,7 @@ const IngredientEditor = ({ ingredient, onSave, onCancel }) => {
   );
 };
 
-const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete }) => {
+const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete, currentTheme, currentUiStyle }) => {
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
 
@@ -1763,14 +1944,14 @@ const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete }) => {
   );
 };
 
-const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
+const ProfileEditor = ({ profile, setProfile, onAvatarUpload, currentTheme, currentUiStyle }) => (
   <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       头像 Emoji/字符（例如 😀、A、D）
       <input
         value={profile.avatar}
         onChange={(e) => setProfile((prev) => ({ ...prev, avatar: e.target.value }))}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
       {String(profile.avatar || "").startsWith("data:image") && (
         <button
@@ -1781,24 +1962,24 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
         </button>
       )}
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       上传头像照片
       <input
         type="file"
         accept="image/*"
         onChange={onAvatarUpload}
-        className="mt-1 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-[rgba(176,137,104,0.4)] file:px-3 file:py-2 file:text-xs file:text-[#3C281E]"
+        className={`mt-1 block w-full text-xs ${currentTheme.colors.textSecondary} file:mr-3 file:rounded-md file:border-0 file:bg-[rgba(176,137,104,0.4)] file:px-3 file:py-2 file:text-xs file:text-[#3C281E]`}
       />
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       昵称
       <input
         value={profile.nickname}
         onChange={(e) => setProfile((prev) => ({ ...prev, nickname: e.target.value }))}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       年龄
       <input
         type="number"
@@ -1811,10 +1992,10 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
             age: e.target.value === "" || Number(e.target.value) === 0 ? "" : Math.max(0, Number(e.target.value))
           }))
         }
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       体重（kg）
       <input
         type="number"
@@ -1828,10 +2009,10 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
             weight: e.target.value === "" || Number(e.target.value) === 0 ? "" : Math.max(0, Number(e.target.value))
           }))
         }
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       血糖（mmol/L）
       <input
         type="number"
@@ -1845,21 +2026,21 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
             bloodSugar: e.target.value === "" || Number(e.target.value) === 0 ? "" : Math.max(0, Number(e.target.value))
           }))
         }
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
     </label>
-    <label className="block text-xs text-slate-600">
+    <label className={`block text-xs ${currentTheme.colors.textSecondary}`}>
       个人简介
       <input
         value={profile.bio || ""}
         onChange={(e) => setProfile((prev) => ({ ...prev, bio: e.target.value }))}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        className={`mt-1 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
       />
     </label>
   </div>
 );
 
-const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete }) => {
+const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, currentTheme, currentUiStyle }) => {
   const inputRef = useRef(null);
   const [isIOS, setIsIOS] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -1934,11 +2115,11 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete }) =>
   };
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+    <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-800">📚记录列表</h2>
+        <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>📚记录列表</h2>
         <button
-          className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600"
+          className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-100`}
           onClick={() => setFilterDate("")}
         >
           清除筛选
@@ -1954,50 +2135,50 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete }) =>
           value={filterDate}
           placeholder={isIOS ? undefined : "年/月/日"}
           onChange={(e) => setFilterDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none ring-indigo-200 focus:ring"
+          className={`w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
           style={{
             ...baseStyle,
             ...iosStyle,
-            color: filterDate ? "inherit" : (isIOS ? "transparent" : "inherit")
+            color: filterDate ? currentTheme.colors.text : (isIOS ? "transparent" : currentTheme.colors.text)
           }}
         />
         {isIOS && !filterDate && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400" style={{ lineHeight: "24px" }}>
+          <span className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm ${currentTheme.colors.textLight}`} style={{ lineHeight: "24px" }}>
             年/月/日
           </span>
         )}
       </div>
 
       {displayedRecords.length === 0 ? (
-        <p className="text-sm text-slate-500">当前筛选下没有记录。</p>
+        <p className={`text-sm ${currentTheme.colors.textLight}`}>当前筛选下没有记录。</p>
       ) : (
         <>
           <ul className="space-y-2">
             {displayedRecords.map((r) => (
-              <li key={r.id} className="rounded-xl bg-slate-50 px-3 py-2 transition hover:bg-slate-100">
+              <li key={r.id} className={`${currentUiStyle.cardRadius} bg-slate-100 px-3 py-2 transition hover:bg-slate-200`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-700">
+                    <p className={`font-medium ${currentTheme.colors.text}`}>
                       {r.type}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className={`text-xs ${currentTheme.colors.textLight}`}>
                       {getDetails(r)}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className={`text-xs ${currentTheme.colors.textLight}`}>
                       {dateToKey(r._date)} {r.time}
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-[#3C281E]">{getValueDisplay(r)}</span>
+                  <span className={`text-sm font-semibold ${currentTheme.colors.text}`}>{getValueDisplay(r)}</span>
                 </div>
                 <div className="mt-2 flex gap-2">
                   <button
-                    className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600"
+                    className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
                     onClick={() => onEdit(r)}
                   >
                     ✏️ 编辑
                   </button>
                   <button
-                    className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600"
+                    className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 transition-colors duration-300 hover:bg-rose-50"
                     onClick={() => onDelete(r.id)}
                   >
                     🗑️ 删除
@@ -2009,7 +2190,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete }) =>
           {hasMore && shouldLimit && (
             <button
               onClick={() => setShowAll(true)}
-              className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} bg-slate-100 py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
             >
               加载更多 ({sortedRecords.length - DEFAULT_DISPLAY_LIMIT} 条)
             </button>
@@ -2017,7 +2198,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete }) =>
           {!shouldLimit && !filterDate && hasMore && (
             <button
               onClick={() => setShowAll(false)}
-              className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} bg-slate-100 py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
             >
               收起 (显示最近 {DEFAULT_DISPLAY_LIMIT} 条)
             </button>
@@ -2053,7 +2234,9 @@ const PickerModal = ({
   onWaterTempChange,
   onCustomAmountChange,
   selectedIngredients = [],
-  onIngredientsChange
+  onIngredientsChange,
+  currentTheme,
+  currentUiStyle
 }) => {
   const [isIOS, setIsIOS] = useState(false);
   
@@ -2100,7 +2283,7 @@ const PickerModal = ({
     })
   };
 
-  const inputClassName = "w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-200 focus:ring";
+  const inputClassName = `w-full ${currentUiStyle.buttonRadius} border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 text-sm outline-none ring-indigo-200 focus:ring`;
 
   // 处理日期输入点击
   const handleDateClick = (e) => {
@@ -2120,19 +2303,19 @@ const PickerModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end bg-white/45" onClick={onClose}>
-      <div className="w-full rounded-t-2xl bg-white p-4 shadow-2xl space-y-8" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-base font-semibold text-slate-800">选择饮品参数</h3>
+    <div className="fixed inset-0 z-20 flex items-end bg-black/45" onClick={onClose}>
+      <div className={`w-full ${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 shadow-2xl space-y-8 transition-colors duration-300 max-h-[80vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+        <h3 className={`text-base font-semibold ${currentTheme.colors.text}`}>选择饮品参数</h3>
 
         <div>
-          <p className="mb-2 text-sm text-slate-600">饮品类型</p>
+          <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>饮品类型</p>
           <div className="flex gap-2 flex-wrap">
             {DRINK_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => onTypeChange(t)}
-                className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                  type === t ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                  type === t ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                 }`}
               >
                 {t}
@@ -2142,8 +2325,8 @@ const PickerModal = ({
               <button
                 key="custom"
                 onClick={() => onTypeChange("自定义")}
-                className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                  type === "自定义" ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                  type === "自定义" ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                 }`}
               >
                 自定义
@@ -2152,14 +2335,14 @@ const PickerModal = ({
           </div>
           {type === "自定义" && customDrinks && customDrinks.length > 0 && (
             <div className="mt-3">
-              <p className="mb-2 text-sm text-slate-600">选择自定义饮品</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>选择自定义饮品</p>
               <div className="flex gap-2 flex-wrap">
                 {customDrinks.map((drink) => (
                   <button
                     key={drink.id}
                     onClick={() => onTypeChange(drink.name)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      type === drink.name ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      type === drink.name ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {drink.name}
@@ -2173,14 +2356,14 @@ const PickerModal = ({
         {isCoffeeOrMilk && (
           <>
             <div>
-              <p className="mb-2 text-sm text-slate-600">杯型</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>杯型</p>
               <div className="flex gap-2">
                 {CUP_SIZES.map((s) => (
                   <button
                     key={s}
                     onClick={() => onCupSizeChange(s)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      cupSize === s ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      cupSize === s ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {s}
@@ -2189,14 +2372,14 @@ const PickerModal = ({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm text-slate-600">冰度</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>冰度</p>
               <div className="flex gap-2">
                 {ICE_OPTIONS.map((i) => (
                   <button
                     key={i}
                     onClick={() => onIceChange(i)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      ice === i ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      ice === i ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {i}
@@ -2205,14 +2388,14 @@ const PickerModal = ({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm text-slate-600">糖度</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>糖度</p>
               <div className="flex gap-2">
                 {SUGAR_OPTIONS.map((s) => (
                   <button
                     key={s}
                     onClick={() => onSugarChange(s)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      sugar === s ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      sugar === s ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {s}
@@ -2226,14 +2409,14 @@ const PickerModal = ({
         {isAlcohol && (
           <>
             <div>
-              <p className="mb-2 text-sm text-slate-600">冰度</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>冰度</p>
               <div className="flex gap-2">
                 {ALCOHOL_ICE_OPTIONS.map((i) => (
                   <button
                     key={i}
                     onClick={() => onAlcoholIceChange(i)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      alcoholIce === i ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      alcoholIce === i ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {i}
@@ -2242,7 +2425,7 @@ const PickerModal = ({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm text-slate-600">酒精含量 (mg)</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>酒精含量 (mg)</p>
               <input
                 type="number"
                 step="100"
@@ -2258,14 +2441,14 @@ const PickerModal = ({
         {isWater && (
           <>
             <div>
-              <p className="mb-2 text-sm text-slate-600">冷暖</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>冷暖</p>
               <div className="flex gap-2">
                 {WATER_TEMP_OPTIONS.map((t) => (
                   <button
                     key={t}
                     onClick={() => onWaterTempChange(t)}
-                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      waterTemp === t ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                      waterTemp === t ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                     }`}
                   >
                     {t}
@@ -2274,7 +2457,7 @@ const PickerModal = ({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm text-slate-600">饮水量 (ml)</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>饮水量 (ml)</p>
               <input
                 type="number"
                 step="50"
@@ -2290,7 +2473,7 @@ const PickerModal = ({
         {/* 配料选择 */}
         {(isCoffeeOrMilk || customDrink) && ingredients && ingredients.length > 0 && (
           <div>
-            <p className="mb-2 text-sm text-slate-600">添加配料</p>
+            <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>添加配料</p>
             <div className="flex gap-2 flex-wrap">
               {ingredients.map((ingredient) => (
                 <button
@@ -2305,8 +2488,8 @@ const PickerModal = ({
                       }
                     }
                   }}
-                  className={`py-2 px-3 rounded-xl border text-sm transition ${
-                    selectedIngredients.some(item => item.id === ingredient.id) ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                  className={`py-2 px-3 ${currentUiStyle.buttonRadius} border text-sm transition ${
+                    selectedIngredients.some(item => item.id === ingredient.id) ? `${currentTheme.colors.accent} text-white border-[#9c7a5f]` : `${currentTheme.colors.textLight} ${currentTheme.colors.border}`
                   }`}
                 >
                   {ingredient.name}
@@ -2319,7 +2502,7 @@ const PickerModal = ({
         {time !== undefined && (
           <>
             <div>
-              <p className="mb-2 text-sm text-slate-600">日期</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>日期</p>
               <div
                 className="relative w-full cursor-pointer"
                 onClick={handleDateClick}
@@ -2336,14 +2519,14 @@ const PickerModal = ({
                   }}
                 />
                 {isIOS && !date && (
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400" style={{ lineHeight: "24px" }}>
+                  <span className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm ${currentTheme.colors.textLight}`} style={{ lineHeight: "24px" }}>
                     年/月/日
                   </span>
                 )}
               </div>
             </div>
             <div>
-              <p className="mb-2 text-sm text-slate-600">时间</p>
+              <p className={`mb-2 text-sm ${currentTheme.colors.textSecondary}`}>时间</p>
               <input
                 type="time"
                 value={time}
@@ -2356,10 +2539,10 @@ const PickerModal = ({
         )}
 
         <div className="flex gap-3 pt-4">
-          <button onClick={onClose} className="flex-1 py-2 rounded-xl bg-slate-200 text-slate-500 active:scale-95 transition hover:bg-slate-300">
+          <button onClick={onClose} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} ${currentTheme.colors.textLight} active:scale-95 transition hover:bg-slate-200`}>
             取消
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2 rounded-xl bg-[#b08968] text-white active:scale-95 transition hover:bg-[#9c7a5f]">
+          <button onClick={onConfirm} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.accent} text-white active:scale-95 transition hover:bg-[#9c7a5f]`}>
             确认记录
           </button>
         </div>
@@ -2374,6 +2557,30 @@ function App() {
   const [trendRange, setTrendRange] = useState("今日");
   const [editingId, setEditingId] = useState(null);
   const [filterDate, setFilterDate] = useState("");
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved ? JSON.parse(saved).theme : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+  const [uiStyle, setUiStyle] = useState(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved ? JSON.parse(saved).uiStyle : 'default';
+    } catch {
+      return 'default';
+    }
+  });
+  const [accentColor, setAccentColor] = useState(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved ? JSON.parse(saved).accentColor : '#b08968';
+    } catch {
+      return '#b08968';
+    }
+  });
   const [records, setRecords] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -2464,6 +2671,19 @@ function App() {
       return [];
     }
   });
+
+  // 获取当前主题配置
+  const currentTheme = THEMES[theme];
+  const currentUiStyle = UI_STYLES[uiStyle];
+
+  // 保存主题设置
+  useEffect(() => {
+    localStorage.setItem(THEME_KEY, JSON.stringify({
+      theme,
+      uiStyle,
+      accentColor
+    }));
+  }, [theme, uiStyle, accentColor]);
 
   const [pickerState, setPickerState] = useState({
     open: false,
@@ -2645,6 +2865,11 @@ function App() {
   useEffect(() => {
     localStorage.setItem(INGREDIENTS_KEY, JSON.stringify(ingredients));
   }, [ingredients]);
+  
+  // 保存主题设置
+  useEffect(() => {
+    localStorage.setItem(THEME_KEY, JSON.stringify({ theme, uiStyle, accentColor }));
+  }, [theme, uiStyle, accentColor]);
 
   const openPicker = useCallback((type, existingRecord = null) => {
     if (existingRecord) {
@@ -3011,9 +3236,9 @@ function App() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-gradient-to-b from-indigo-50 via-slate-100 to-slate-100">
-      <header className="sticky top-0 z-10 border-b border-indigo-100 bg-white px-4 py-3 backdrop-blur">
-        <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} className="text-xl">
+    <div className={`mx-auto flex min-h-screen w-full max-w-md flex-col transition-colors duration-300 ${currentTheme.colors.background} ${theme === 'dark' ? 'dark' : ''}`}>
+      <header className={`sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card}`}>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} className={`text-xl transition-colors duration-300 ${currentTheme.colors.text}`}>
           MyDrink
         </h1>
       </header>
@@ -3045,6 +3270,8 @@ function App() {
             todayRecords={todayRecords}
             userAge={Number(profile.age) || 0}
             userBloodSugar={Number(profile.bloodSugar) || 0}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
           />
         )}
 
@@ -3060,6 +3287,8 @@ function App() {
             setFilterDate={setFilterDate}
             onEdit={(record) => openPicker(record.type, record)}
             onDelete={deleteRecord}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
           />
         )}
 
@@ -3098,16 +3327,24 @@ function App() {
             onAddIngredient={addIngredient}
             onEditIngredient={editIngredient}
             onDeleteIngredient={deleteIngredient}
+            theme={theme}
+            setTheme={setTheme}
+            uiStyle={uiStyle}
+            setUiStyle={setUiStyle}
+            accentColor={accentColor}
+            setAccentColor={setAccentColor}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
           />
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 mx-auto flex w-full max-w-md border-t border-indigo-100 bg-white backdrop-blur">
+      <nav className={`fixed bottom-0 left-0 right-0 mx-auto flex w-full max-w-md backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card}`}>
         {TABS.map((tab) => (
           <button
             key={tab}
-            className={`flex-1 py-2 text-xs font-medium ${
-              activeTab === tab ? "text-[#3C281E]" : "text-slate-500"
+            className={`flex-1 py-2 text-xs font-medium transition-colors duration-300 ${
+              activeTab === tab ? currentTheme.colors.text : currentTheme.colors.textLight
             }`}
             onClick={() => setActiveTab(tab)}
           >
@@ -3142,6 +3379,8 @@ function App() {
         ingredients={ingredients}
         selectedIngredients={pickerState.selectedIngredients}
         onIngredientsChange={(ingredients) => setPickerState((prev) => ({ ...prev, selectedIngredients: ingredients }))}
+        currentTheme={currentTheme}
+        currentUiStyle={currentUiStyle}
       />
     </div>
   );
