@@ -1,6 +1,8 @@
 # MyDrink
 
-一个饮品记录追踪器（React + Tailwind CSS）。
+一个功能完整的饮品追踪与健康管理应用 MyDrink，
+帮助用户记录每日摄入的咖啡、奶茶、酒和水，分析咖啡因、酒精及水分数据，并提供健康建议。
+整体采用 React + Tailwind CSS + Recharts 构建，目前版本的用户数据存储在 localStorage 中。
 
 ## 本地运行
 
