@@ -20,11 +20,13 @@ const TREND_RANGES = ["今日", "本周", "本月", "本年", "近7天"];
 const STORAGE_KEY = "mydrink-records-v1";
 const SETTINGS_KEY = "mydrink-settings-v1";
 const PROFILE_KEY = "mydrink-profile-v1";
-const DRINK_TYPES = ["咖啡", "奶茶", "酒", "水"];
+const CUSTOM_DRINKS_KEY = "mydrink-custom-drinks-v1";
+const INGREDIENTS_KEY = "mydrink-ingredients-v1";
+const DRINK_TYPES = ["咖啡", "奶茶", "酒", "水", "茶", "果汁", "碳酸饮料"];
 
 // 杯型与系数（中杯1.0，大杯1.2，超大杯1.3）
 const CUP_SIZES = ["中杯", "大杯", "超大杯"];
-const CAFFEINE_BASE = { 咖啡: 95, 奶茶: 45 }; // 中杯基准值
+const CAFFEINE_BASE = { 咖啡: 95, 奶茶: 45, 茶: 30 }; // 中杯基准值
 const CUP_MULTIPLIER = { 中杯: 1.0, 大杯: 1.2, 超大杯: 1.3 };
 
 // 糖度选项
@@ -32,13 +34,13 @@ const ICE_OPTIONS = ["去冰", "少冰", "正常冰"];
 const SUGAR_OPTIONS = ["无糖", "微糖", "半糖", "全糖"];
 
 // 糖分系数（中杯半糖基准 g）
-const SUGAR_BASE = { 咖啡: 0, 奶茶: 10 };
+const SUGAR_BASE = { 咖啡: 0, 奶茶: 10, 茶: 0, 果汁: 15, 碳酸饮料: 12 };
 const SUGAR_MULTIPLIER = { 无糖: 0, 微糖: 0.5, 半糖: 1.0, 全糖: 1.5 };
 
 // 热量基准（中杯基准 kcal）
-const CALORIES_BASE = { 咖啡: 5, 奶茶: 50, 酒: 7, 水: 0 };
+const CALORIES_BASE = { 咖啡: 5, 奶茶: 50, 酒: 7, 水: 0, 茶: 2, 果汁: 60, 碳酸饮料: 40 };
 // 脂肪基准（中杯基准 g）
-const FAT_BASE = { 咖啡: 0, 奶茶: 3, 酒: 0, 水: 0 };
+const FAT_BASE = { 咖啡: 0, 奶茶: 3, 酒: 0, 水: 0, 茶: 0, 果汁: 0, 碳酸饮料: 0 };
 
 // 酒冰度
 const ALCOHOL_ICE_OPTIONS = ["加冰", "不加冰"];
@@ -63,13 +65,71 @@ const COLORS = {
     咖啡: "#9c7a5f",
     奶茶: "#b08968",
     酒: "#ffc02e",
-    水: "#90ccfb"
+    水: "#90ccfb",
+    茶: "#8caf92",
+    果汁: "#ff7b54",
+    碳酸饮料: "#4dabf7"
   }
 };
 
 const PIE_COLORS = COLORS.pie;
 
 // ==================== 辅助函数 ====================
+
+// 计算记录的营养成分
+const calculateNutrition = (type, cupSize, sugar, customAmount) => {
+  if (type === "咖啡" || type === "奶茶" || type === "茶" || type === "果汁" || type === "碳酸饮料") {
+    const multiplier = CUP_MULTIPLIER[cupSize];
+    const baseCaffeine = CAFFEINE_BASE[type] || 0;
+    const caffeine = Math.round(baseCaffeine * multiplier);
+    const sugarMultiplier = SUGAR_MULTIPLIER[sugar];
+    const sugar_g = SUGAR_BASE[type] * multiplier * sugarMultiplier;
+    const calories = CALORIES_BASE[type] * multiplier + sugar_g * 4;
+    const fat_g = FAT_BASE[type] * multiplier;
+    
+    return {
+      caffeine,
+      sugar_g,
+      calories_kcal: Math.round(calories),
+      fat_g: Math.round(fat_g * 10) / 10,
+      alcohol: 0,
+      water: 0
+    };
+  } else if (type === "酒") {
+    const amount = Number(customAmount) || 0;
+    const alcoholGrams = amount / 1000;
+    const calories = alcoholGrams * 7;
+    
+    return {
+      alcohol: amount,
+      sugar_g: 0,
+      calories_kcal: Math.round(calories),
+      fat_g: 0,
+      caffeine: 0,
+      water: 0
+    };
+  } else if (type === "水") {
+    const amount = Number(customAmount) || 0;
+    
+    return {
+      water: amount,
+      sugar_g: 0,
+      calories_kcal: 0,
+      fat_g: 0,
+      caffeine: 0,
+      alcohol: 0
+    };
+  }
+  
+  return {
+    caffeine: 0,
+    alcohol: 0,
+    water: 0,
+    sugar_g: 0,
+    calories_kcal: 0,
+    fat_g: 0
+  };
+};
 const isSameDay = (a, b) => dateToKey(a) === dateToKey(b);
 
 const dateToKey = (date) =>
@@ -369,11 +429,11 @@ const HealthAssistant = ({
     }
 
     advices.push(`🍬 WHO 建议每日添加糖摄入不超过 50 g，您当前 ${totalSugar} g。`);
-    advices.push(`🔥 每日热量摄入建议 ${dailyCaloriesLimit} kcal，您当前 ${totalCalories} kcal。`);
-    advices.push(`🥑 每日脂肪摄入建议不超过 ${dailyFatLimit} g，您当前 ${totalFat} g。`);
+    advices.push(`🔥 WHO 建议成年人每日热量摄入：女性约 2000 kcal，男性约 2500 kcal，您当前 ${totalCalories} kcal。`);
+    advices.push(`🥑 WHO 建议每日脂肪摄入不超过 65 g，您当前 ${totalFat} g。`);
 
     return advices;
-  }, [userWeight, userAge, userBloodSugar, totalSugar, totalCalories, totalFat, dailyCaloriesLimit, dailyFatLimit]);
+  }, [userWeight, userAge, userBloodSugar, totalSugar, totalCalories, totalFat]);
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mb-4">
@@ -396,11 +456,39 @@ const HealthAssistant = ({
           <span className="text-xl">📈</span>
           <h4 className="font-medium text-slate-800">健康趋势关联</h4>
         </div>
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-slate-600 mb-3">
           定期在「个人设置」中更新体重和血糖，系统将根据您的饮品记录分析健康趋势。
-          <br />
-          （后续版本将支持体重/血糖历史记录图表，敬请期待）
         </p>
+        <div className="space-y-2">
+          {userWeight > 0 && (
+            <div className="flex justify-between text-xs">
+              <span>体重与饮水关联</span>
+              <span className="font-medium">
+                {totalWater >= userWeight * 30 ? "✅ 达标" : "⚠️ 不足"}
+              </span>
+            </div>
+          )}
+          {userBloodSugar > 0 && (
+            <div className="flex justify-between text-xs">
+              <span>血糖与糖分摄入</span>
+              <span className="font-medium">
+                {userBloodSugar < 6.1 && totalSugar <= dailySugarLimit ? "✅ 正常" : "⚠️ 需注意"}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-xs">
+            <span>咖啡因与睡眠建议</span>
+            <span className="font-medium">
+              {currentTime.getHours() >= 20 && caffeineRemaining > 50 ? "⚠️ 避免摄入" : "✅ 可适量"}
+            </span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span>酒精代谢状态</span>
+            <span className="font-medium">
+              {alcoholBAC > 0.03 ? "⚠️ 不宜驾驶" : "✅ 安全"}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -507,37 +595,12 @@ const RecordTab = ({
         <div className="flex">
           <div className="flex-shrink-0 w-full snap-start">
             <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
-              <p className="text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCaffeine} mg</p>
-              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : "text-slate-500"}`}>
-                每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
-              </p>
-              <p className="mt-4 text-sm text-slate-500">🍺 今天已摄入酒精</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalAlcohol} mg</p>
-              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : "text-slate-500"}`}>
-                每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
-              </p>
-              <p className="mt-4 text-sm text-slate-500">💧 今天已摄入水分</p>
+              <p className="text-sm text-slate-500">💧 今天已摄入水分</p>
               <p className="mt-1 text-3xl font-bold text-slate-800">{totalWater} ml</p>
               <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : "text-slate-500"}`}>
                 每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
               </p>
-              <p className="mt-4 text-sm text-slate-500">🍬 今天已摄入糖分</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalSugar} g</p>
-              <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : "text-slate-500"}`}>
-                每日糖分上限 {dailySugarLimit} g {exceedSugarLimit ? "（已超出）" : ""}
-              </p>
-              <p className="mt-4 text-sm text-slate-500">🔥 今天已摄入热量</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCalories} kcal</p>
-              <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : "text-slate-500"}`}>
-                每日热量上限 {dailyCaloriesLimit} kcal {exceedCaloriesLimit ? "（已超出）" : ""}
-              </p>
-              <p className="mt-4 text-sm text-slate-500">🥑 今天已摄入脂肪</p>
-              <p className="mt-1 text-3xl font-bold text-slate-800">{totalFat} g</p>
-              <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : "text-slate-500"}`}>
-                每日脂肪上限 {dailyFatLimit} g {exceedFatLimit ? "（已超出）" : ""}
-              </p>
-              <div className="mt-1">
+              <div className="mt-2">
                 <div className="flex justify-between text-sm mb-1">
                   <span>饮水进度</span>
                   <span>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
@@ -549,12 +612,37 @@ const RecordTab = ({
                   />
                 </div>
               </div>
+              <p className="mt-4 text-sm text-slate-500">☕️ 今天已摄入咖啡因</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCaffeine} mg</p>
+              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">🍬 今天已摄入糖分</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalSugar} g</p>
+              <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日糖分上限 {dailySugarLimit} g {exceedSugarLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">🍺 今天已摄入酒精</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalAlcohol} mg</p>
+              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">🔥 今天已摄入热量</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalCalories} kcal</p>
+              <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日热量上限 {dailyCaloriesLimit} kcal {exceedCaloriesLimit ? "（已超出）" : ""}
+              </p>
+              <p className="mt-4 text-sm text-slate-500">🥑 今天已摄入脂肪</p>
+              <p className="mt-1 text-3xl font-bold text-slate-800">{totalFat} g</p>
+              <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : "text-slate-500"}`}>
+                每日脂肪上限 {dailyFatLimit} g {exceedFatLimit ? "（已超出）" : ""}
+              </p>
               <div className="mt-4 pt-2 border-t border-slate-100">
                 <p className="text-xs text-slate-500">🎯 今日剩余</p>
-                <RemainingItem label="咖啡因" value={totalCaffeine} limit={dailyLimit} unit="mg" />
-                <RemainingItem label="酒精" value={totalAlcohol} limit={dailyAlcoholLimit} unit="mg" />
                 <RemainingItem label="水分" value={totalWater} limit={dailyWaterTarget} unit="ml" normalColor="text-slate-700" />
+                <RemainingItem label="咖啡因" value={totalCaffeine} limit={dailyLimit} unit="mg" />
                 <RemainingItem label="糖分" value={totalSugar} limit={dailySugarLimit} unit="g" />
+                <RemainingItem label="酒精" value={totalAlcohol} limit={dailyAlcoholLimit} unit="mg" />
                 <RemainingItem label="热量" value={totalCalories} limit={dailyCaloriesLimit} unit="kcal" />
                 <RemainingItem label="脂肪" value={totalFat} limit={dailyFatLimit} unit="g" />
               </div>
@@ -619,31 +707,36 @@ const TrendTab = ({
   const [caloriesRange, setCaloriesRange] = useState("今日");
   const [fatRange, setFatRange] = useState("今日");
 
+  // 优化图表数据计算，使用 useMemo 缓存结果
   const caffeineChartData = useMemo(() => {
     const filtered = getFilteredRecordsForTrend(normalizedRecords, caffeineRange, today);
     return getTrendChartData(filtered, caffeineRange, today, 'caffeine');
-    }, [normalizedRecords, caffeineRange, today]
-  );
-  const alcoholChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, alcoholRange, today, 'alcohol'),
-    [normalizedRecords, alcoholRange, today]
-  );
-  const waterChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, waterRange, today, 'water'),
-    [normalizedRecords, waterRange, today]
-  );
-  const sugarChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, sugarRange, today, 'sugar_g'),
-    [normalizedRecords, sugarRange, today]
-  );
-  const caloriesChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, caloriesRange, today, 'calories_kcal'),
-    [normalizedRecords, caloriesRange, today]
-  );
-  const fatChartData = useMemo(
-    () => getTrendChartData(normalizedRecords, fatRange, today, 'fat_g'),
-    [normalizedRecords, fatRange, today]
-  );
+  }, [normalizedRecords, caffeineRange, today]);
+  
+  const alcoholChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, alcoholRange, today);
+    return getTrendChartData(filtered, alcoholRange, today, 'alcohol');
+  }, [normalizedRecords, alcoholRange, today]);
+  
+  const waterChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, waterRange, today);
+    return getTrendChartData(filtered, waterRange, today, 'water');
+  }, [normalizedRecords, waterRange, today]);
+  
+  const sugarChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, sugarRange, today);
+    return getTrendChartData(filtered, sugarRange, today, 'sugar_g');
+  }, [normalizedRecords, sugarRange, today]);
+  
+  const caloriesChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, caloriesRange, today);
+    return getTrendChartData(filtered, caloriesRange, today, 'calories_kcal');
+  }, [normalizedRecords, caloriesRange, today]);
+  
+  const fatChartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, fatRange, today);
+    return getTrendChartData(filtered, fatRange, today, 'fat_g');
+  }, [normalizedRecords, fatRange, today]);
 
   const [pieRange, setPieRange] = useState("今日");
   const pieFilteredRecords = useMemo(
@@ -731,6 +824,16 @@ const TrendTab = ({
       setActiveIndex(index);
     }
   };
+  
+  const scrollToCard = (index) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: index * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (container) {
@@ -907,6 +1010,9 @@ const TrendTab = ({
     );
   };
 
+  // 检查是否有数据
+  const hasData = normalizedRecords.length > 0;
+
   const trendCards = [
     { title: "咖啡因", unit: "mg", chartData: caffeineChartData, range: caffeineRange, setRange: setCaffeineRange, color: COLORS.primary },
     { title: "酒精", unit: "mg", chartData: alcoholChartData, range: alcoholRange, setRange: setAlcoholRange, color: "#f59e0b" },
@@ -918,61 +1024,63 @@ const TrendTab = ({
 
   return (
     <section className="space-y-4">
-      <CalendarHeatmap />
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
-        <div className="mb-2 flex items-center gap-2">
-          <h2 className="text-base font-semibold text-slate-800 flex-shrink-0">🥤 {getPieTitle()}</h2>
-          <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
-            <div className="flex gap-1">
-              {TREND_RANGES.map((range) => (
-                <button
-                  key={range}
-                  className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 ${
-                    pieRange === range ? "bg-white text-[#3C281E] shadow-sm" : "text-slate-500"
-                  }`}
-                  onClick={() => setPieRange(range)}
-                >
-                  {range}
-                </button>
-              ))}
+      {hasData ? (
+        <>
+          <CalendarHeatmap />
+          <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
+            <div className="mb-2 flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-800 flex-shrink-0">🥤 {getPieTitle()}</h2>
+              <div className="flex-1 min-w-0 overflow-x-auto rounded-lg bg-slate-100 p-1">
+                <div className="flex gap-1">
+                  {TREND_RANGES.map((range) => (
+                    <button
+                      key={range}
+                      className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 ${
+                        pieRange === range ? "bg-white text-[#3C281E] shadow-sm" : "text-slate-500"
+                      }`}
+                      onClick={() => setPieRange(range)}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{ height: "280px" }}>
+              {filteredPieData.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                  暂无数据
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={filteredPieData}
+                      dataKey="value"
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={40}
+                      outerRadius={60}
+                      label={renderCustomLabel}
+                      labelLine={false}
+                    >
+                      {filteredPieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || "#818cf8"} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      margin={{ top: 20 }}
+                      wrapperStyle={{ marginTop: "12px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-        </div>
-        <div style={{ height: "280px" }}>
-          {filteredPieData.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-sm text-slate-500">
-              暂无数据
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={filteredPieData}
-                  dataKey="value"
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={40}
-                  outerRadius={60}
-                  label={renderCustomLabel}
-                  labelLine={false}
-                >
-                  {filteredPieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name] || "#818cf8"} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  margin={{ top: 20 }}
-                  wrapperStyle={{ marginTop: "12px" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-      <div
+          <div
         ref={scrollContainerRef}
         className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -984,14 +1092,25 @@ const TrendTab = ({
       </div>
       <div className="flex justify-center gap-2 mt-2">
         {trendCards.map((_, idx) => (
-          <div
+          <button
             key={idx}
-            className={`h-2 w-2 rounded-full transition-all ${
-              activeIndex === idx ? "w-4 bg-[#3C281E]" : "bg-slate-300"
+            onClick={() => scrollToCard(idx)}
+            className={`h-2 rounded-full transition-all ${
+              activeIndex === idx ? "w-4 bg-[#3C281E]" : "w-2 bg-slate-300"
             }`}
           />
         ))}
       </div>
+        </>
+      ) : (
+        <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-indigo-50 flex flex-col items-center justify-center">
+          <div className="text-4xl mb-4">📊</div>
+          <h3 className="text-lg font-semibold text-slate-800 mb-2">暂无数据</h3>
+          <p className="text-sm text-slate-500 text-center">
+            开始记录你的饮品，查看健康数据趋势
+          </p>
+        </div>
+      )}
       <RecordList
         records={records}
         filterDate={filterDate}
@@ -1029,128 +1148,53 @@ const SettingsTab = ({
   onExportCsv,
   onResetAll,
   onAvatarUpload,
-  setProfile
+  setProfile,
+  customDrinks,
+  onAddCustomDrink,
+  onEditCustomDrink,
+  onDeleteCustomDrink,
+  ingredients,
+  onAddIngredient,
+  onEditIngredient,
+  onDeleteIngredient
 }) => {
-  const [tempDailyLimit, setTempDailyLimit] = useState(String(dailyLimit));
-  const [tempDailyAlcoholLimit, setTempDailyAlcoholLimit] = useState(String(dailyAlcoholLimit));
-  const [tempDailyWaterTarget, setTempDailyWaterTarget] = useState(String(dailyWaterTarget));
-  const [tempDailySugarLimit, setTempDailySugarLimit] = useState(String(dailySugarLimit));
-  const [tempDailyCaloriesLimit, setTempDailyCaloriesLimit] = useState(String(dailyCaloriesLimit));
-  const [tempDailyFatLimit, setTempDailyFatLimit] = useState(String(dailyFatLimit));
-
-  useEffect(() => {
-    setTempDailyLimit(String(dailyLimit));
-  }, [dailyLimit]);
-  useEffect(() => {
-    setTempDailyAlcoholLimit(String(dailyAlcoholLimit));
-  }, [dailyAlcoholLimit]);
-  useEffect(() => {
-    setTempDailyWaterTarget(String(dailyWaterTarget));
-  }, [dailyWaterTarget]);
-  useEffect(() => {
-    setTempDailySugarLimit(String(dailySugarLimit));
-  }, [dailySugarLimit]);
-  useEffect(() => {
-    setTempDailyCaloriesLimit(String(dailyCaloriesLimit));
-  }, [dailyCaloriesLimit]);
-  useEffect(() => {
-    setTempDailyFatLimit(String(dailyFatLimit));
-  }, [dailyFatLimit]);
-
-  const handleDailyLimitBlur = () => {
-    let val = tempDailyLimit.trim();
-    if (val === "") {
-      setTempDailyLimit(String(dailyLimit));
+  // 通用处理函数
+  const handleLimitChange = (value, setter, min, max, defaultValue) => {
+    if (value === "") {
+      // 当用户清空输入时，设置为 0
+      setter(0);
       return;
     }
-    let num = Number(val);
+    const num = Number(value);
     if (isNaN(num)) {
-      setTempDailyLimit(String(dailyLimit));
+      setter(defaultValue);
       return;
     }
-    num = Math.min(800, Math.max(50, num));
-    setDailyLimit(num);
-    setTempDailyLimit(String(num));
+    setter(Math.min(max, Math.max(min, num)));
   };
 
-  const handleDailyAlcoholLimitBlur = () => {
-    let val = tempDailyAlcoholLimit.trim();
-    if (val === "") {
-      setTempDailyAlcoholLimit(String(dailyAlcoholLimit));
-      return;
-    }
-    let num = Number(val);
-    if (isNaN(num)) {
-      setTempDailyAlcoholLimit(String(dailyAlcoholLimit));
-      return;
-    }
-    num = Math.min(50000, Math.max(0, num));
-    setDailyAlcoholLimit(num);
-    setTempDailyAlcoholLimit(String(num));
+  const handleDailyLimitBlur = (e) => {
+    handleLimitChange(e.target.value, setDailyLimit, 0, 800, 300);
   };
 
-  const handleDailyWaterTargetBlur = () => {
-    let val = tempDailyWaterTarget.trim();
-    if (val === "") {
-      setTempDailyWaterTarget(String(dailyWaterTarget));
-      return;
-    }
-    let num = Number(val);
-    if (isNaN(num)) {
-      setTempDailyWaterTarget(String(dailyWaterTarget));
-      return;
-    }
-    num = Math.min(5000, Math.max(0, num));
-    setDailyWaterTarget(num);
-    setTempDailyWaterTarget(String(num));
+  const handleDailyAlcoholLimitBlur = (e) => {
+    handleLimitChange(e.target.value, setDailyAlcoholLimit, 0, 50000, 14000);
   };
 
-  const handleDailySugarLimitBlur = () => {
-    let val = tempDailySugarLimit.trim();
-    if (val === "") {
-      setTempDailySugarLimit(String(dailySugarLimit));
-      return;
-    }
-    let num = Number(val);
-    if (isNaN(num)) {
-      setTempDailySugarLimit(String(dailySugarLimit));
-      return;
-    }
-    num = Math.min(200, Math.max(0, num));
-    setDailySugarLimit(num);
-    setTempDailySugarLimit(String(num));
+  const handleDailyWaterTargetBlur = (e) => {
+    handleLimitChange(e.target.value, setDailyWaterTarget, 0, 5000, 2000);
   };
 
-  const handleDailyCaloriesLimitBlur = () => {
-    let val = tempDailyCaloriesLimit.trim();
-    if (val === "") {
-      setTempDailyCaloriesLimit(String(dailyCaloriesLimit));
-      return;
-    }
-    let num = Number(val);
-    if (isNaN(num)) {
-      setTempDailyCaloriesLimit(String(dailyCaloriesLimit));
-      return;
-    }
-    num = Math.min(5000, Math.max(0, num));
-    setDailyCaloriesLimit(num);
-    setTempDailyCaloriesLimit(String(num));
+  const handleDailySugarLimitBlur = (e) => {
+    handleLimitChange(e.target.value, setDailySugarLimit, 0, 200, 50);
   };
 
-  const handleDailyFatLimitBlur = () => {
-    let val = tempDailyFatLimit.trim();
-    if (val === "") {
-      setTempDailyFatLimit(String(dailyFatLimit));
-      return;
-    }
-    let num = Number(val);
-    if (isNaN(num)) {
-      setTempDailyFatLimit(String(dailyFatLimit));
-      return;
-    }
-    num = Math.min(200, Math.max(0, num));
-    setDailyFatLimit(num);
-    setTempDailyFatLimit(String(num));
+  const handleDailyCaloriesLimitBlur = (e) => {
+    handleLimitChange(e.target.value, setDailyCaloriesLimit, 0, 5000, 2000);
+  };
+
+  const handleDailyFatLimitBlur = (e) => {
+    handleLimitChange(e.target.value, setDailyFatLimit, 0, 200, 70);
   };
 
   const genderOptions = ["未设置", "男", "女"];
@@ -1250,72 +1294,92 @@ const SettingsTab = ({
       <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50">
         <h2 className="text-base font-semibold text-slate-800">⚙️ 个人设置</h2>
         <p className="mt-2 text-xs text-slate-500">设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日咖啡因上限（mg）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailyLimit}
-            onChange={(e) => setTempDailyLimit(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailyLimitBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日酒精上限（mg）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailyAlcoholLimit}
-            onChange={(e) => setTempDailyAlcoholLimit(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailyAlcoholLimitBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日喝水目标（ml）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailyWaterTarget}
-            onChange={(e) => setTempDailyWaterTarget(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailyWaterTargetBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日糖分上限（g）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailySugarLimit}
-            onChange={(e) => setTempDailySugarLimit(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailySugarLimitBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日热量上限（kcal）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailyCaloriesLimit}
-            onChange={(e) => setTempDailyCaloriesLimit(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailyCaloriesLimitBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
-        <label className="mt-4 block text-sm text-slate-600">
-          每日脂肪上限（g）
-          <input
-            type="text"
-            inputMode="numeric"
-            value={tempDailyFatLimit}
-            onChange={(e) => setTempDailyFatLimit(e.target.value.replace(/[^\d]/g, ''))}
-            onBlur={handleDailyFatLimitBlur}
-            className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
-          />
-        </label>
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <label className="block text-sm text-slate-600">
+            每日咖啡因上限（mg）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailyLimit === 0 ? "" : dailyLimit}
+              onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailyLimitBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+          <label className="block text-sm text-slate-600">
+            每日酒精上限（mg）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
+              onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailyAlcoholLimitBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+          <label className="block text-sm text-slate-600">
+            每日喝水目标（ml）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
+              onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailyWaterTargetBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+          <label className="block text-sm text-slate-600">
+            每日糖分上限（g）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailySugarLimit === 0 ? "" : dailySugarLimit}
+              onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailySugarLimitBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+          <label className="block text-sm text-slate-600">
+            每日热量上限（kcal）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
+              onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailyCaloriesLimitBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+          <label className="block text-sm text-slate-600">
+            每日脂肪上限（g）
+            <input
+              type="text"
+              inputMode="numeric"
+              value={dailyFatLimit === 0 ? "" : dailyFatLimit}
+              onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+              onBlur={handleDailyFatLimitBlur}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mt-4">
+        <CustomDrinkManager
+          customDrinks={customDrinks}
+          onAdd={onAddCustomDrink}
+          onEdit={onEditCustomDrink}
+          onDelete={onDeleteCustomDrink}
+        />
+      </div>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-indigo-50 mt-4">
+        <IngredientManager
+          ingredients={ingredients}
+          onAdd={onAddIngredient}
+          onEdit={onEditIngredient}
+          onDelete={onDeleteIngredient}
+        />
       </div>
 
       <div className="mt-6 flex flex-col gap-2">
@@ -1349,6 +1413,356 @@ const SettingsTab = ({
   );
 };
 
+const CustomDrinkEditor = ({ drink, onSave, onCancel }) => {
+  const [name, setName] = useState(drink?.name || "");
+  const [caffeine, setCaffeine] = useState(drink?.caffeine?.toString() || "");
+  const [sugar, setSugar] = useState(drink?.sugar?.toString() || "");
+  const [calories, setCalories] = useState(drink?.calories?.toString() || "");
+  const [fat, setFat] = useState(drink?.fat?.toString() || "");
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      alert("请输入饮品名称");
+      return;
+    }
+    onSave({
+      name: name.trim(),
+      caffeine,
+      sugar,
+      calories,
+      fat
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-xs text-slate-600">
+        饮品名称
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          placeholder="例如：蜂蜜茶"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        咖啡因含量（mg）
+        <input
+          type="number"
+          min="0"
+          value={caffeine}
+          onChange={(e) => setCaffeine(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        糖分含量（g）
+        <input
+          type="number"
+          min="0"
+          value={sugar}
+          onChange={(e) => setSugar(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        热量含量（kcal）
+        <input
+          type="number"
+          min="0"
+          value={calories}
+          onChange={(e) => setCalories(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        脂肪含量（g）
+        <input
+          type="number"
+          min="0"
+          value={fat}
+          onChange={(e) => setFat(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <div className="flex gap-2 pt-2">
+        <button
+          onClick={onCancel}
+          className="flex-1 py-2 rounded-lg bg-slate-200 text-slate-500 text-sm"
+        >
+          取消
+        </button>
+        <button
+          onClick={handleSave}
+          className="flex-1 py-2 rounded-lg bg-[#b08968] text-white text-sm"
+        >
+          保存
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const CustomDrinkManager = ({ customDrinks, onAdd, onEdit, onDelete }) => {
+  const [editingDrink, setEditingDrink] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
+
+  const handleAdd = () => {
+    setEditingDrink(null);
+    setShowEditor(true);
+  };
+
+  const handleEdit = (drink) => {
+    setEditingDrink(drink);
+    setShowEditor(true);
+  };
+
+  const handleSave = (drinkData) => {
+    if (editingDrink) {
+      onEdit(editingDrink.id, drinkData);
+    } else {
+      onAdd(drinkData);
+    }
+    setShowEditor(false);
+    setEditingDrink(null);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium text-slate-800">自定义饮品</h3>
+        <button
+          onClick={handleAdd}
+          className="text-xs text-[#b08968] hover:underline"
+        >
+          添加饮品
+        </button>
+      </div>
+      {customDrinks.length === 0 ? (
+        <p className="text-xs text-slate-500">暂无自定义饮品</p>
+      ) : (
+        <div className="space-y-2">
+          {customDrinks.map((drink) => (
+            <div key={drink.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-slate-800">{drink.name}</p>
+                <p className="text-xs text-slate-500">
+                  咖啡因: {drink.caffeine}mg, 糖分: {drink.sugar}g, 热量: {drink.calories}kcal, 脂肪: {drink.fat}g
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleEdit(drink)}
+                  className="text-xs text-[#b08968] hover:underline"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => onDelete(drink.id)}
+                  className="text-xs text-rose-500 hover:underline"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showEditor && (
+        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+          <h4 className="text-sm font-medium text-slate-800 mb-2">
+            {editingDrink ? "编辑饮品" : "添加自定义饮品"}
+          </h4>
+          <CustomDrinkEditor
+            drink={editingDrink}
+            onSave={handleSave}
+            onCancel={() => {
+              setShowEditor(false);
+              setEditingDrink(null);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const IngredientEditor = ({ ingredient, onSave, onCancel }) => {
+  const [name, setName] = useState(ingredient?.name || "");
+  const [caffeine, setCaffeine] = useState(ingredient?.caffeine?.toString() || "");
+  const [sugar, setSugar] = useState(ingredient?.sugar?.toString() || "");
+  const [calories, setCalories] = useState(ingredient?.calories?.toString() || "");
+  const [fat, setFat] = useState(ingredient?.fat?.toString() || "");
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      alert("请输入配料名称");
+      return;
+    }
+    onSave({
+      name: name.trim(),
+      caffeine,
+      sugar,
+      calories,
+      fat
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-xs text-slate-600">
+        配料名称
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+          placeholder="例如：珍珠、奶盖"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        咖啡因含量（mg）
+        <input
+          type="number"
+          min="0"
+          value={caffeine}
+          onChange={(e) => setCaffeine(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        糖分含量（g）
+        <input
+          type="number"
+          min="0"
+          value={sugar}
+          onChange={(e) => setSugar(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        热量含量（kcal）
+        <input
+          type="number"
+          min="0"
+          value={calories}
+          onChange={(e) => setCalories(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <label className="block text-xs text-slate-600">
+        脂肪含量（g）
+        <input
+          type="number"
+          min="0"
+          value={fat}
+          onChange={(e) => setFat(e.target.value)}
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
+        />
+      </label>
+      <div className="flex gap-2 pt-2">
+        <button
+          onClick={onCancel}
+          className="flex-1 py-2 rounded-lg bg-slate-200 text-slate-500 text-sm"
+        >
+          取消
+        </button>
+        <button
+          onClick={handleSave}
+          className="flex-1 py-2 rounded-lg bg-[#b08968] text-white text-sm"
+        >
+          保存
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const IngredientManager = ({ ingredients, onAdd, onEdit, onDelete }) => {
+  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [showEditor, setShowEditor] = useState(false);
+
+  const handleAdd = () => {
+    setEditingIngredient(null);
+    setShowEditor(true);
+  };
+
+  const handleEdit = (ingredient) => {
+    setEditingIngredient(ingredient);
+    setShowEditor(true);
+  };
+
+  const handleSave = (ingredientData) => {
+    if (editingIngredient) {
+      onEdit(editingIngredient.id, ingredientData);
+    } else {
+      onAdd(ingredientData);
+    }
+    setShowEditor(false);
+    setEditingIngredient(null);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-medium text-slate-800">配料管理</h3>
+        <button
+          onClick={handleAdd}
+          className="text-xs text-[#b08968] hover:underline"
+        >
+          添加配料
+        </button>
+      </div>
+      {ingredients.length === 0 ? (
+        <p className="text-xs text-slate-500">暂无配料</p>
+      ) : (
+        <div className="space-y-2">
+          {ingredients.map((ingredient) => (
+            <div key={ingredient.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-slate-800">{ingredient.name}</p>
+                <p className="text-xs text-slate-500">
+                  咖啡因: {ingredient.caffeine}mg, 糖分: {ingredient.sugar}g, 热量: {ingredient.calories}kcal, 脂肪: {ingredient.fat}g
+                </p>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleEdit(ingredient)}
+                  className="text-xs text-[#b08968] hover:underline"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => onDelete(ingredient.id)}
+                  className="text-xs text-rose-500 hover:underline"
+                >
+                  删除
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showEditor && (
+        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+          <h4 className="text-sm font-medium text-slate-800 mb-2">
+            {editingIngredient ? "编辑配料" : "添加配料"}
+          </h4>
+          <IngredientEditor
+            ingredient={editingIngredient}
+            onSave={handleSave}
+            onCancel={() => {
+              setShowEditor(false);
+              setEditingIngredient(null);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
   <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
     <label className="block text-xs text-slate-600">
@@ -1358,6 +1772,14 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload }) => (
         onChange={(e) => setProfile((prev) => ({ ...prev, avatar: e.target.value }))}
         className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none ring-indigo-200 focus:ring"
       />
+      {String(profile.avatar || "").startsWith("data:image") && (
+        <button
+          onClick={() => setProfile((prev) => ({ ...prev, avatar: "" }))}
+          className="mt-1 text-xs text-[#b08968] hover:underline"
+        >
+          使用 Emoji/字符
+        </button>
+      )}
     </label>
     <label className="block text-xs text-slate-600">
       上传头像照片
@@ -1617,6 +2039,8 @@ const PickerModal = ({
   alcoholIce,
   waterTemp,
   customAmount,
+  customDrinks,
+  ingredients,
   onClose,
   onConfirm,
   onTypeChange,
@@ -1627,9 +2051,13 @@ const PickerModal = ({
   onCupSizeChange,
   onAlcoholIceChange,
   onWaterTempChange,
-  onCustomAmountChange
+  onCustomAmountChange,
+  selectedIngredients = [],
+  onIngredientsChange
 }) => {
   const [isIOS, setIsIOS] = useState(false);
+  
+  // 检测设备类型
   useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(isIOSDevice);
@@ -1637,10 +2065,14 @@ const PickerModal = ({
 
   if (!open) return null;
 
-  const isCoffeeOrMilk = type === "咖啡" || type === "奶茶";
+  const isCoffeeOrMilk = type === "咖啡" || type === "奶茶" || type === "茶" || type === "果汁" || type === "碳酸饮料";
   const isAlcohol = type === "酒";
   const isWater = type === "水";
+  
+  // 检查是否是自定义饮品
+  const customDrink = customDrinks && customDrinks.find(drink => drink.name === type);
 
+  // 获取默认数量值
   const getAmountDefault = () => {
     if (isAlcohol) return String(DEFAULT_ALCOHOL_MG);
     if (isWater) return String(DEFAULT_WATER_ML);
@@ -1649,34 +2081,40 @@ const PickerModal = ({
 
   const currentAmount = customAmount !== undefined ? customAmount : getAmountDefault();
 
-  const baseInputStyle = {
+  // 统一输入样式
+  const inputStyle = {
     appearance: "none",
     WebkitAppearance: "none",
     boxSizing: "border-box",
     width: "100%",
     minWidth: 0,
-    display: "block"
-  };
-
-  const iosInputStyle = isIOS ? {
-    lineHeight: "1.5",
-    paddingTop: "8px",
-    paddingBottom: "8px",
-    height: "auto"
-  } : {
-    height: "40px",
-    lineHeight: "24px"
+    display: "block",
+    ...(isIOS ? {
+      lineHeight: "1.5",
+      paddingTop: "8px",
+      paddingBottom: "8px",
+      height: "auto"
+    } : {
+      height: "40px",
+      lineHeight: "24px"
+    })
   };
 
   const inputClassName = "w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none ring-indigo-200 focus:ring";
 
+  // 处理日期输入点击
   const handleDateClick = (e) => {
     e.stopPropagation();
     const input = e.currentTarget.querySelector('input');
     if (input) {
       input.focus();
+      // 尝试显示原生选择器
       if (input.showPicker) {
-        input.showPicker();
+        try {
+          input.showPicker();
+        } catch (error) {
+          // 忽略错误，使用默认行为
+        }
       }
     }
   };
@@ -1688,19 +2126,48 @@ const PickerModal = ({
 
         <div>
           <p className="mb-2 text-sm text-slate-600">饮品类型</p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {DRINK_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => onTypeChange(t)}
                 className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                  type === t ? "text-[#3C281E]" : "text-slate-500"
+                  type === t ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                 }`}
               >
                 {t}
               </button>
             ))}
+            {customDrinks && customDrinks.length > 0 && (
+              <button
+                key="custom"
+                onClick={() => onTypeChange("自定义")}
+                className={`flex-1 py-2 rounded-xl border text-sm transition ${
+                  type === "自定义" ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                }`}
+              >
+                自定义
+              </button>
+            )}
           </div>
+          {type === "自定义" && customDrinks && customDrinks.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-2 text-sm text-slate-600">选择自定义饮品</p>
+              <div className="flex gap-2 flex-wrap">
+                {customDrinks.map((drink) => (
+                  <button
+                    key={drink.id}
+                    onClick={() => onTypeChange(drink.name)}
+                    className={`flex-1 py-2 rounded-xl border text-sm transition ${
+                      type === drink.name ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                    }`}
+                  >
+                    {drink.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {isCoffeeOrMilk && (
@@ -1713,7 +2180,7 @@ const PickerModal = ({
                     key={s}
                     onClick={() => onCupSizeChange(s)}
                     className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      cupSize === s ? "text-[#3C281E]" : "text-slate-500"
+                      cupSize === s ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                     }`}
                   >
                     {s}
@@ -1729,7 +2196,7 @@ const PickerModal = ({
                     key={i}
                     onClick={() => onIceChange(i)}
                     className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      ice === i ? "text-[#3C281E]" : "text-slate-500"
+                      ice === i ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                     }`}
                   >
                     {i}
@@ -1745,7 +2212,7 @@ const PickerModal = ({
                     key={s}
                     onClick={() => onSugarChange(s)}
                     className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      sugar === s ? "text-[#3C281E]" : "text-slate-500"
+                      sugar === s ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                     }`}
                   >
                     {s}
@@ -1766,7 +2233,7 @@ const PickerModal = ({
                     key={i}
                     onClick={() => onAlcoholIceChange(i)}
                     className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      alcoholIce === i ? "text-[#3C281E]" : "text-slate-500"
+                      alcoholIce === i ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                     }`}
                   >
                     {i}
@@ -1782,7 +2249,7 @@ const PickerModal = ({
                 value={currentAmount}
                 onChange={(e) => onCustomAmountChange(e.target.value)}
                 className={inputClassName}
-                style={{ ...baseInputStyle, ...iosInputStyle }}
+                style={inputStyle}
               />
             </div>
           </>
@@ -1798,7 +2265,7 @@ const PickerModal = ({
                     key={t}
                     onClick={() => onWaterTempChange(t)}
                     className={`flex-1 py-2 rounded-xl border text-sm transition ${
-                      waterTemp === t ? "text-[#3C281E]" : "text-slate-500"
+                      waterTemp === t ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
                     }`}
                   >
                     {t}
@@ -1814,10 +2281,39 @@ const PickerModal = ({
                 value={currentAmount}
                 onChange={(e) => onCustomAmountChange(e.target.value)}
                 className={inputClassName}
-                style={{ ...baseInputStyle, ...iosInputStyle }}
+                style={inputStyle}
               />
             </div>
           </>
+        )}
+
+        {/* 配料选择 */}
+        {(isCoffeeOrMilk || customDrink) && ingredients && ingredients.length > 0 && (
+          <div>
+            <p className="mb-2 text-sm text-slate-600">添加配料</p>
+            <div className="flex gap-2 flex-wrap">
+              {ingredients.map((ingredient) => (
+                <button
+                  key={ingredient.id}
+                  onClick={() => {
+                    if (onIngredientsChange) {
+                      const isSelected = selectedIngredients.some(item => item.id === ingredient.id);
+                      if (isSelected) {
+                        onIngredientsChange(selectedIngredients.filter(item => item.id !== ingredient.id));
+                      } else {
+                        onIngredientsChange([...selectedIngredients, ingredient]);
+                      }
+                    }
+                  }}
+                  className={`py-2 px-3 rounded-xl border text-sm transition ${
+                    selectedIngredients.some(item => item.id === ingredient.id) ? "bg-[#b08968] text-white border-[#9c7a5f]" : "text-slate-500 border-slate-200"
+                  }`}
+                >
+                  {ingredient.name}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {time !== undefined && (
@@ -1835,8 +2331,7 @@ const PickerModal = ({
                   placeholder={isIOS ? undefined : "年/月/日"}
                   className={inputClassName}
                   style={{
-                    ...baseInputStyle,
-                    ...iosInputStyle,
+                    ...inputStyle,
                     color: date ? "inherit" : (isIOS ? "transparent" : "inherit")
                   }}
                 />
@@ -1854,17 +2349,17 @@ const PickerModal = ({
                 value={time}
                 onChange={(e) => onTimeChange(e.target.value)}
                 className={inputClassName}
-                style={{ ...baseInputStyle, ...iosInputStyle }}
+                style={inputStyle}
               />
             </div>
           </>
         )}
 
         <div className="flex gap-3 pt-4">
-          <button onClick={onClose} className="flex-1 py-2 rounded-xl bg-slate-200 text-slate-500 active:scale-95 transition">
+          <button onClick={onClose} className="flex-1 py-2 rounded-xl bg-slate-200 text-slate-500 active:scale-95 transition hover:bg-slate-300">
             取消
           </button>
-          <button onClick={onConfirm} className="flex-1 py-2 rounded-xl bg-slate-200 text-[#3C281E] active:scale-95 transition">
+          <button onClick={onConfirm} className="flex-1 py-2 rounded-xl bg-[#b08968] text-white active:scale-95 transition hover:bg-[#9c7a5f]">
             确认记录
           </button>
         </div>
@@ -1950,6 +2445,26 @@ function App() {
     }
   });
 
+  // 自定义饮品
+  const [customDrinks, setCustomDrinks] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_DRINKS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // 配料管理
+  const [ingredients, setIngredients] = useState(() => {
+    try {
+      const saved = localStorage.getItem(INGREDIENTS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [pickerState, setPickerState] = useState({
     open: false,
     type: "咖啡",
@@ -1960,7 +2475,8 @@ function App() {
     waterTemp: WATER_TEMP_OPTIONS[0],
     time: "",
     customAmount: "",
-    date: ""
+    date: "",
+    selectedIngredients: []
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profile, setProfile] = useState(() => {
@@ -1985,7 +2501,7 @@ function App() {
     return d;
   })();
 
-  // 标准化记录：优先使用存储的 _date 字符串
+  // 标准化记录：统一处理日期格式
   const normalizedRecords = useMemo(() =>
     records.map((r) => {
       let recordDate;
@@ -1996,35 +2512,23 @@ function App() {
         const [hours, minutes] = r.time ? r.time.split(':') : ['0', '0'];
         recordDate = new Date(year, month-1, day, hours, minutes);
       } 
-      // 兼容旧数据：没有 _date 字符串但有 createdAt
+      // 兼容旧数据：使用 createdAt
       else if (r.createdAt) {
-        const datePart = extractDateFromISO(r.createdAt);
-        if (datePart && r.time) {
-          const [year, month, day] = datePart.split('-');
-          const [hours, minutes] = r.time.split(':');
-          recordDate = new Date(year, month-1, day, hours, minutes);
-        } else if (datePart) {
-          const [year, month, day] = datePart.split('-');
-          recordDate = new Date(year, month-1, day, 0, 0);
-        } else {
-          recordDate = new Date();
-        }
+        recordDate = new Date(r.createdAt);
       } 
-      // 最旧的兼容：_date 是 Date 对象
-      else if (r._date && r.time) {
-        let dateObj = r._date;
-        if (typeof dateObj === 'string') {
-          dateObj = new Date(dateObj);
+      // 兼容其他格式
+      else if (r._date) {
+        recordDate = typeof r._date === 'string' ? new Date(r._date) : r._date;
+        if (r.time) {
+          const [hours, minutes] = r.time.split(':');
+          recordDate.setHours(hours, minutes, 0, 0);
         }
-        const [hours, minutes] = r.time.split(':');
-        recordDate = new Date(
-          dateObj.getFullYear(),
-          dateObj.getMonth(),
-          dateObj.getDate(),
-          hours,
-          minutes
-        );
       } else {
+        recordDate = new Date();
+      }
+
+      // 确保日期对象有效
+      if (isNaN(recordDate.getTime())) {
         recordDate = new Date();
       }
 
@@ -2052,12 +2556,33 @@ function App() {
     [normalizedRecords, today]
   );
 
-  const totalCaffeine = todayRecords.reduce((sum, r) => sum + (r.caffeine || 0), 0);
-  const totalAlcohol = todayRecords.reduce((sum, r) => sum + (r.alcohol || 0), 0);
-  const totalWater = todayRecords.reduce((sum, r) => sum + (r.water || 0), 0);
-  const totalSugar = todayRecords.reduce((sum, r) => sum + (r.sugar_g || 0), 0);
-  const totalCalories = todayRecords.reduce((sum, r) => sum + (r.calories_kcal || 0), 0);
-  const totalFat = todayRecords.reduce((sum, r) => sum + (r.fat_g || 0), 0);
+  // 使用 useMemo 缓存计算结果
+  const { totalCaffeine, totalAlcohol, totalWater, totalSugar, totalCalories, totalFat } = useMemo(() => {
+    let caffeine = 0;
+    let alcohol = 0;
+    let water = 0;
+    let sugar = 0;
+    let calories = 0;
+    let fat = 0;
+
+    for (const r of todayRecords) {
+      caffeine += r.caffeine || 0;
+      alcohol += r.alcohol || 0;
+      water += r.water || 0;
+      sugar += r.sugar_g || 0;
+      calories += r.calories_kcal || 0;
+      fat += r.fat_g || 0;
+    }
+
+    return {
+      totalCaffeine: caffeine,
+      totalAlcohol: alcohol,
+      totalWater: water,
+      totalSugar: sugar,
+      totalCalories: calories,
+      totalFat: fat
+    };
+  }, [todayRecords]);
 
   const exceedLimit = totalCaffeine > dailyLimit;
   const exceedAlcoholLimit = totalAlcohol > dailyAlcoholLimit;
@@ -2114,6 +2639,12 @@ function App() {
   useEffect(() => {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
   }, [profile]);
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_DRINKS_KEY, JSON.stringify(customDrinks));
+  }, [customDrinks]);
+  useEffect(() => {
+    localStorage.setItem(INGREDIENTS_KEY, JSON.stringify(ingredients));
+  }, [ingredients]);
 
   const openPicker = useCallback((type, existingRecord = null) => {
     if (existingRecord) {
@@ -2138,7 +2669,8 @@ function App() {
         time: existingRecord.time,
         customAmount: existingRecord.type === "酒" ? String(existingRecord.alcohol || DEFAULT_ALCOHOL_MG) :
                       existingRecord.type === "水" ? String(existingRecord.water || DEFAULT_WATER_ML) : "",
-        date: recordDate
+        date: recordDate,
+        selectedIngredients: existingRecord.selectedIngredients || []
       });
     } else {
       setEditingId(null);
@@ -2157,7 +2689,8 @@ function App() {
         waterTemp: WATER_TEMP_OPTIONS[0],
         time: currentTime,
         customAmount: type === "酒" ? String(DEFAULT_ALCOHOL_MG) : (type === "水" ? String(DEFAULT_WATER_ML) : ""),
-        date: todayDate
+        date: todayDate,
+        selectedIngredients: []
       });
     }
   }, []);
@@ -2180,12 +2713,15 @@ function App() {
       finalDate = new Date(year, month-1, day, now.getHours(), now.getMinutes());
     }
 
-    // 本地日期字符串
-    const normalizedDate = finalDate.toLocaleString('sv-SE').split(' ')[0]; // "YYYY-MM-DD"
-    const createdAtISO = finalDate.toLocaleString('sv-SE').replace(' ', 'T');
+    // 统一使用 ISO 日期字符串格式
+    const normalizedDate = finalDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
+    const createdAtISO = finalDate.toISOString();
     const newTime = pickerState.time || `${String(now.getHours()).padStart(2, "0")}:${String(
       now.getMinutes()
     ).padStart(2, "0")}`;
+
+    // 检查是否是自定义饮品
+    const customDrink = customDrinks.find(drink => drink.name === pickerState.type);
 
     if (editingId) {
       // 编辑现有记录
@@ -2197,55 +2733,62 @@ function App() {
             type: pickerState.type,
             time: newTime,
             createdAt: createdAtISO,
-            _date: normalizedDate   // 存储本地日期字符串
+            _date: normalizedDate   // 统一存储为 ISO 日期字符串
           };
-          if (pickerState.type === "咖啡" || pickerState.type === "奶茶") {
-            const multiplier = CUP_MULTIPLIER[pickerState.cupSize];
-            const baseCaffeine = CAFFEINE_BASE[pickerState.type];
-            const caffeine = Math.round(baseCaffeine * multiplier);
-            const sugarMultiplier = SUGAR_MULTIPLIER[pickerState.sugar];
-            const sugar = SUGAR_BASE[pickerState.type] * multiplier * sugarMultiplier;
-            const calories = CALORIES_BASE[pickerState.type] * multiplier + sugar * 4;
-            const fat = FAT_BASE[pickerState.type] * multiplier * sugarMultiplier;
+          
+          let nutrition;
+          if (customDrink) {
+            // 使用自定义饮品的营养成分
+            nutrition = {
+              caffeine: customDrink.caffeine,
+              sugar_g: customDrink.sugar,
+              calories_kcal: customDrink.calories,
+              fat_g: customDrink.fat,
+              alcohol: 0,
+              water: 0
+            };
+          } else {
+            // 使用通用函数计算营养成分
+            nutrition = calculateNutrition(
+              pickerState.type,
+              pickerState.cupSize,
+              pickerState.sugar,
+              pickerState.customAmount
+            );
+          }
+          
+          // 添加配料的营养成分
+          if (pickerState.selectedIngredients && pickerState.selectedIngredients.length > 0) {
+            pickerState.selectedIngredients.forEach(ingredient => {
+              nutrition.caffeine += ingredient.caffeine;
+              nutrition.sugar_g += ingredient.sugar;
+              nutrition.calories_kcal += ingredient.calories;
+              nutrition.fat_g += ingredient.fat;
+            });
+          }
+          
+          if (pickerState.type === "咖啡" || pickerState.type === "奶茶" || pickerState.type === "茶" || pickerState.type === "果汁" || pickerState.type === "碳酸饮料" || customDrink) {
             return {
               ...base,
               cupSize: pickerState.cupSize,
               ice: pickerState.ice,
               sugar: pickerState.sugar,
-              caffeine,
-              sugar_g: sugar,
-              calories_kcal: Math.round(calories),
-              fat_g: Math.round(fat * 10) / 10,
-              alcohol: 0,
-              water: 0
+              selectedIngredients: pickerState.selectedIngredients,
+              ...nutrition
             };
-          }
-          if (pickerState.type === "酒") {
-            const amount = Number(pickerState.customAmount) || 0;
-            const alcoholGrams = amount / 1000;
-            const calories = alcoholGrams * 7;
+          } else if (pickerState.type === "酒") {
             return {
               ...base,
               alcoholIce: pickerState.alcoholIce,
-              alcohol: amount,
-              sugar_g: 0,
-              calories_kcal: Math.round(calories),
-              fat_g: 0,
-              caffeine: 0,
-              water: 0
+              selectedIngredients: pickerState.selectedIngredients,
+              ...nutrition
             };
-          }
-          if (pickerState.type === "水") {
-            const amount = Number(pickerState.customAmount) || 0;
+          } else if (pickerState.type === "水") {
             return {
               ...base,
               waterTemp: pickerState.waterTemp,
-              water: amount,
-              sugar_g: 0,
-              calories_kcal: 0,
-              fat_g: 0,
-              caffeine: 0,
-              alcohol: 0
+              selectedIngredients: pickerState.selectedIngredients,
+              ...nutrition
             };
           }
           return base;
@@ -2258,59 +2801,68 @@ function App() {
         type: pickerState.type,
         time: newTime,
         createdAt: createdAtISO,
-        _date: normalizedDate   // 存储本地日期字符串
+        _date: normalizedDate   // 统一存储为 ISO 日期字符串
       };
-      if (pickerState.type === "咖啡" || pickerState.type === "奶茶") {
-        const multiplier = CUP_MULTIPLIER[pickerState.cupSize];
-        const baseCaffeine = CAFFEINE_BASE[pickerState.type];
-        const caffeine = Math.round(baseCaffeine * multiplier);
-        const sugarMultiplier = SUGAR_MULTIPLIER[pickerState.sugar];
-        const sugar = SUGAR_BASE[pickerState.type] * multiplier * sugarMultiplier;
-        const calories = CALORIES_BASE[pickerState.type] * multiplier + sugar * 4;
-        const fat = FAT_BASE[pickerState.type] * multiplier * sugarMultiplier;
+      
+      let nutrition;
+      if (customDrink) {
+        // 使用自定义饮品的营养成分
+        nutrition = {
+          caffeine: customDrink.caffeine,
+          sugar_g: customDrink.sugar,
+          calories_kcal: customDrink.calories,
+          fat_g: customDrink.fat,
+          alcohol: 0,
+          water: 0
+        };
+      } else {
+        // 使用通用函数计算营养成分
+        nutrition = calculateNutrition(
+          pickerState.type,
+          pickerState.cupSize,
+          pickerState.sugar,
+          pickerState.customAmount
+        );
+      }
+      
+      // 添加配料的营养成分
+      if (pickerState.selectedIngredients && pickerState.selectedIngredients.length > 0) {
+        pickerState.selectedIngredients.forEach(ingredient => {
+          nutrition.caffeine += ingredient.caffeine;
+          nutrition.sugar_g += ingredient.sugar;
+          nutrition.calories_kcal += ingredient.calories;
+          nutrition.fat_g += ingredient.fat;
+        });
+      }
+      
+      if (pickerState.type === "咖啡" || pickerState.type === "奶茶" || pickerState.type === "茶" || pickerState.type === "果汁" || pickerState.type === "碳酸饮料" || customDrink) {
         newRecord = {
           ...newRecord,
           cupSize: pickerState.cupSize,
           ice: pickerState.ice,
           sugar: pickerState.sugar,
-          caffeine,
-          sugar_g: sugar,
-          calories_kcal: Math.round(calories),
-          fat_g: Math.round(fat * 10) / 10,
-          alcohol: 0,
-          water: 0
+          selectedIngredients: pickerState.selectedIngredients,
+          ...nutrition
         };
       } else if (pickerState.type === "酒") {
-        const amount = Number(pickerState.customAmount) || 0;
-        const alcoholGrams = amount / 1000;
-        const calories = alcoholGrams * 7;
         newRecord = {
           ...newRecord,
           alcoholIce: pickerState.alcoholIce,
-          alcohol: amount,
-          sugar_g: 0,
-          calories_kcal: Math.round(calories),
-          fat_g: 0,
-          caffeine: 0,
-          water: 0
+          selectedIngredients: pickerState.selectedIngredients,
+          ...nutrition
         };
       } else if (pickerState.type === "水") {
-        const amount = Number(pickerState.customAmount) || 0;
         newRecord = {
           ...newRecord,
           waterTemp: pickerState.waterTemp,
-          water: amount,
-          sugar_g: 0,
-          calories_kcal: 0,
-          fat_g: 0,
-          caffeine: 0,
-          alcohol: 0
+          selectedIngredients: pickerState.selectedIngredients,
+          ...nutrition
         };
       }
       setRecords((prev) => [newRecord, ...prev]);
     }
     closePicker();
-  }, [editingId, pickerState, closePicker]);
+  }, [editingId, pickerState, closePicker, customDrinks]);
 
   const deleteRecord = useCallback((id) => {
     setRecords((prev) => prev.filter((r) => r.id !== id));
@@ -2400,6 +2952,64 @@ function App() {
     event.target.value = "";
   };
 
+  // 自定义饮品管理
+  const addCustomDrink = (drink) => {
+    setCustomDrinks(prev => [...prev, {
+      id: Date.now().toString(),
+      name: drink.name,
+      caffeine: Number(drink.caffeine) || 0,
+      sugar: Number(drink.sugar) || 0,
+      calories: Number(drink.calories) || 0,
+      fat: Number(drink.fat) || 0
+    }]);
+  };
+
+  const editCustomDrink = (id, updatedDrink) => {
+    setCustomDrinks(prev => prev.map(drink => 
+      drink.id === id ? {
+        ...drink,
+        name: updatedDrink.name,
+        caffeine: Number(updatedDrink.caffeine) || 0,
+        sugar: Number(updatedDrink.sugar) || 0,
+        calories: Number(updatedDrink.calories) || 0,
+        fat: Number(updatedDrink.fat) || 0
+      } : drink
+    ));
+  };
+
+  const deleteCustomDrink = (id) => {
+    setCustomDrinks(prev => prev.filter(drink => drink.id !== id));
+  };
+
+  // 配料管理
+  const addIngredient = (ingredient) => {
+    setIngredients(prev => [...prev, {
+      id: Date.now().toString(),
+      name: ingredient.name,
+      caffeine: Number(ingredient.caffeine) || 0,
+      sugar: Number(ingredient.sugar) || 0,
+      calories: Number(ingredient.calories) || 0,
+      fat: Number(ingredient.fat) || 0
+    }]);
+  };
+
+  const editIngredient = (id, updatedIngredient) => {
+    setIngredients(prev => prev.map(ingredient => 
+      ingredient.id === id ? {
+        ...ingredient,
+        name: updatedIngredient.name,
+        caffeine: Number(updatedIngredient.caffeine) || 0,
+        sugar: Number(updatedIngredient.sugar) || 0,
+        calories: Number(updatedIngredient.calories) || 0,
+        fat: Number(updatedIngredient.fat) || 0
+      } : ingredient
+    ));
+  };
+
+  const deleteIngredient = (id) => {
+    setIngredients(prev => prev.filter(ingredient => ingredient.id !== id));
+  };
+
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-gradient-to-b from-indigo-50 via-slate-100 to-slate-100">
       <header className="sticky top-0 z-10 border-b border-indigo-100 bg-white px-4 py-3 backdrop-blur">
@@ -2480,6 +3090,14 @@ function App() {
             onResetAll={resetAll}
             onAvatarUpload={handleAvatarUpload}
             setProfile={setProfile}
+            customDrinks={customDrinks}
+            onAddCustomDrink={addCustomDrink}
+            onEditCustomDrink={editCustomDrink}
+            onDeleteCustomDrink={deleteCustomDrink}
+            ingredients={ingredients}
+            onAddIngredient={addIngredient}
+            onEditIngredient={editIngredient}
+            onDeleteIngredient={deleteIngredient}
           />
         )}
       </main>
@@ -2512,7 +3130,7 @@ function App() {
         date={pickerState.date}
         onClose={closePicker}
         onConfirm={addRecord}
-        onTypeChange={(type) => setPickerState((prev) => ({ ...prev, type }))}
+        onTypeChange={(type) => setPickerState((prev) => ({ ...prev, type, selectedIngredients: [] }))}
         onIceChange={(ice) => setPickerState((prev) => ({ ...prev, ice }))}
         onSugarChange={(sugar) => setPickerState((prev) => ({ ...prev, sugar }))}
         onCupSizeChange={(cupSize) => setPickerState((prev) => ({ ...prev, cupSize }))}
@@ -2521,6 +3139,9 @@ function App() {
         onTimeChange={(time) => setPickerState((prev) => ({ ...prev, time }))}
         onDateChange={(date) => setPickerState((prev) => ({ ...prev, date }))}
         onCustomAmountChange={(amount) => setPickerState((prev) => ({ ...prev, customAmount: amount }))}
+        ingredients={ingredients}
+        selectedIngredients={pickerState.selectedIngredients}
+        onIngredientsChange={(ingredients) => setPickerState((prev) => ({ ...prev, selectedIngredients: ingredients }))}
       />
     </div>
   );
