@@ -32,22 +32,39 @@ const THEMES = {
     colors: {
       background: "bg-gradient-to-b from-indigo-50 via-slate-100 to-slate-100",
       card: "bg-white",
+      cardColor: "white",
       text: "text-slate-800",
+      textColor: "#1e293b",
       textSecondary: "text-slate-600",
+      textSecondaryColor: "#475569",
       textLight: "text-slate-500",
+      textLightColor: "#64748b",
       border: "border-slate-200",
+      borderColor: "#e2e8f0",
       borderLight: "border-slate-100",
+      borderLightColor: "#f1f5f9",
       cardBorder: "ring-indigo-50",
+      cardBorderColor: "#eef2ff",
       accent: "bg-[#b08968]",
+      accentColor: "#b08968",
       accentText: "text-[#3C281E]",
+      accentTextColor: "#3C281E",
       accentLight: "bg-[rgba(176,137,104,0.4)]",
+      accentLightColor: "rgba(176,137,104,0.4)",
       warning: "bg-amber-50",
+      warningColor: "#fffbeb",
       warningBorder: "border-amber-200",
+      warningBorderColor: "#fde68a",
       info: "bg-indigo-50",
+      infoColor: "#eff6ff",
       infoBorder: "border-indigo-200",
+      infoBorderColor: "#bfdbfe",
       danger: "bg-rose-50",
+      dangerColor: "#fff1f2",
       dangerBorder: "border-rose-200",
+      dangerBorderColor: "#fecaca",
       progress: "bg-[#3b82f6]",
+      progressColor: "#3b82f6",
       pie: {
         咖啡: "#9c7a5f",
         奶茶: "#b08968",
@@ -64,22 +81,39 @@ const THEMES = {
     colors: {
       background: "bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900",
       card: "bg-gray-800",
+      cardColor: "#1f2937",
       text: "text-gray-100",
+      textColor: "#f3f4f6",
       textSecondary: "text-gray-300",
+      textSecondaryColor: "#d1d5db",
       textLight: "text-gray-400",
+      textLightColor: "#9ca3af",
       border: "border-gray-700",
+      borderColor: "#374151",
       borderLight: "border-gray-600",
+      borderLightColor: "#4b5563",
       cardBorder: "ring-gray-700",
+      cardBorderColor: "#374151",
       accent: "bg-[#c8a98e]",
+      accentColor: "#c8a98e",
       accentText: "text-[#1a110d]",
+      accentTextColor: "#1a110d",
       accentLight: "bg-[rgba(200,169,142,0.4)]",
+      accentLightColor: "rgba(200,169,142,0.4)",
       warning: "bg-amber-900/30",
+      warningColor: "rgba(180, 83, 9, 0.3)",
       warningBorder: "border-amber-800/50",
+      warningBorderColor: "rgba(180, 83, 9, 0.5)",
       info: "bg-indigo-900/30",
+      infoColor: "rgba(99, 102, 241, 0.3)",
       infoBorder: "border-indigo-800/50",
+      infoBorderColor: "rgba(99, 102, 241, 0.5)",
       danger: "bg-rose-900/30",
+      dangerColor: "rgba(225, 29, 72, 0.3)",
       dangerBorder: "border-rose-800/50",
+      dangerBorderColor: "rgba(225, 29, 72, 0.5)",
       progress: "bg-[#60a5fa]",
+      progressColor: "#60a5fa",
       pie: {
         咖啡: "#c8a07c",
         奶茶: "#d4a76a",
@@ -1076,10 +1110,11 @@ const TrendTab = ({
     startDate.setDate(startDate.getDate() - startWeekday);
     for (let i = 0; i < totalCells; i++) {
       const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
+      date.setDate(date.getDate() + i);
       const day = date.getDate();
-      const isCurrentMonth = date.getMonth() === currentDate.getMonth();
-      const count = monthRecords.get(day) || 0;
+      const isCurrentMonth = date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
+      // 只有当前月份的日期才使用monthRecords中的数据，其他月份的日期count为0
+      const count = isCurrentMonth ? (monthRecords.get(day) || 0) : 0;
       cells.push({ date, day, isCurrentMonth, count });
     }
 
@@ -1108,31 +1143,25 @@ const TrendTab = ({
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {cells.map((cell, idx) => {
-            let bgColor = currentTheme.colors.card;
-            if (cell.isCurrentMonth && cell.count > 0) {
-              bgColor = getBgColorStyle(cell.count);
-            } else if (!cell.isCurrentMonth) {
-              bgColor = currentTheme.colors.card;
-            } else {
-              bgColor = currentTheme.colors.card;
-            }
-            return (
-              <div
-                key={idx}
-                className={`
-                  aspect-square flex items-center justify-center rounded-lg text-sm
-                  ${!cell.isCurrentMonth ? currentTheme.colors.textLight : currentTheme.colors.text}
-                  border ${currentTheme.colors.border} hover:shadow-md transition
-                `}
-                style={{ backgroundColor: bgColor }}
-                title={`${cell.day}日：${cell.count}杯`}
-              >
-                {cell.isCurrentMonth ? cell.day : ""}
-              </div>
-            );
-          })}
-        </div>
+  {cells.map((cell, idx) => (
+    <div
+      key={`${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`}
+      className={`
+        aspect-square flex items-center justify-center rounded-lg text-sm
+        ${!cell.isCurrentMonth ? currentTheme.colors.textLight : currentTheme.colors.text}
+        border ${currentTheme.colors.border} hover:shadow-md transition
+      `}
+      style={{
+        backgroundColor: cell.isCurrentMonth && cell.count > 0
+          ? getBgColorStyle(cell.count)
+          : currentTheme.colors.card
+      }}
+      title={cell.isCurrentMonth ? `${cell.day}日：${cell.count}杯` : ''}
+    >
+      {cell.isCurrentMonth ? cell.day : ""}
+    </div>
+  ))}
+</div>
         <div className={`mt-3 text-xs ${currentTheme.colors.textLight} text-center`}>
           颜色越深表示当天记录杯数越多
         </div>
@@ -1446,9 +1475,9 @@ const SettingsTab = ({
                     onClick={() => handleGenderChange(opt)}
                     className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: profile.gender === opt ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: profile.gender === opt ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: profile.gender === opt ? accentColor : currentTheme.colors.border.replace('border-', '')
+                      backgroundColor: profile.gender === opt ? accentColor : currentTheme.colors.cardColor,
+                      color: profile.gender === opt ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: profile.gender === opt ? accentColor : currentTheme.colors.borderColor
                     }}
                   >
                     {opt}
@@ -1592,9 +1621,9 @@ const SettingsTab = ({
                   onClick={() => setTheme('light')}
                   className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                   style={{
-                    backgroundColor: theme === 'light' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                    color: theme === 'light' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                    borderColor: theme === 'light' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    backgroundColor: theme === 'light' ? accentColor : currentTheme.colors.cardColor,
+                    color: theme === 'light' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                    borderColor: theme === 'light' ? accentColor : currentTheme.colors.borderColor
                   }}
                 >
                   浅色模式
@@ -1603,9 +1632,9 @@ const SettingsTab = ({
                   onClick={() => setTheme('dark')}
                   className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                   style={{
-                    backgroundColor: theme === 'dark' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                    color: theme === 'dark' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                    borderColor: theme === 'dark' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    backgroundColor: theme === 'dark' ? accentColor : currentTheme.colors.cardColor,
+                    color: theme === 'dark' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                    borderColor: theme === 'dark' ? accentColor : currentTheme.colors.borderColor
                   }}
                 >
                   深色模式
@@ -1620,9 +1649,9 @@ const SettingsTab = ({
                   onClick={() => setUiStyle('default')}
                   className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                   style={{
-                    backgroundColor: uiStyle === 'default' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                    color: uiStyle === 'default' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                    borderColor: uiStyle === 'default' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    backgroundColor: uiStyle === 'default' ? accentColor : currentTheme.colors.cardColor,
+                    color: uiStyle === 'default' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                    borderColor: uiStyle === 'default' ? accentColor : currentTheme.colors.borderColor
                   }}
                 >
                   默认风格
@@ -1631,9 +1660,9 @@ const SettingsTab = ({
                   onClick={() => setUiStyle('pixel')}
                   className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                   style={{
-                    backgroundColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                    color: uiStyle === 'pixel' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                    borderColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    backgroundColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.cardColor,
+                    color: uiStyle === 'pixel' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                    borderColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.borderColor
                   }}
                 >
                   像素风格
@@ -1642,9 +1671,9 @@ const SettingsTab = ({
                   onClick={() => setUiStyle('apple')}
                   className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                   style={{
-                    backgroundColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                    color: uiStyle === 'apple' ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                    borderColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.border.replace('border-', '')
+                    backgroundColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.cardColor,
+                    color: uiStyle === 'apple' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                    borderColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.borderColor
                   }}
                 >
                   苹果风格
@@ -2461,9 +2490,9 @@ const PickerModal = ({
                 onClick={() => onTypeChange(t)}
                 className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                 style={{
-                  backgroundColor: type === t ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                  color: type === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                  borderColor: type === t ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  backgroundColor: type === t ? accentColor : currentTheme.colors.cardColor,
+                  color: type === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: type === t ? accentColor : currentTheme.colors.borderColor
                 }}
               >
                 {t}
@@ -2475,9 +2504,9 @@ const PickerModal = ({
                 onClick={() => onTypeChange("自定义")}
                 className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                 style={{
-                  backgroundColor: type === "自定义" ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                  color: type === "自定义" ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                  borderColor: type === "自定义" ? accentColor : currentTheme.colors.border.replace('border-', '')
+                  backgroundColor: type === "自定义" ? accentColor : currentTheme.colors.cardColor,
+                  color: type === "自定义" ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: type === "自定义" ? accentColor : currentTheme.colors.borderColor
                 }}
               >
                 自定义
@@ -2494,10 +2523,10 @@ const PickerModal = ({
                     onClick={() => onTypeChange(drink.name)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: type === drink.name ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: type === drink.name ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: type === drink.name ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: type === drink.name ? accentColor : currentTheme.colors.cardColor,
+                  color: type === drink.name ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: type === drink.name ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {drink.name}
                   </button>
@@ -2518,10 +2547,10 @@ const PickerModal = ({
                     onClick={() => onCupSizeChange(s)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: cupSize === s ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: cupSize === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: cupSize === s ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: cupSize === s ? accentColor : currentTheme.colors.cardColor,
+                  color: cupSize === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: cupSize === s ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {s}
                   </button>
@@ -2537,10 +2566,10 @@ const PickerModal = ({
                     onClick={() => onIceChange(i)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: ice === i ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: ice === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: ice === i ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: ice === i ? accentColor : currentTheme.colors.cardColor,
+                  color: ice === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: ice === i ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {i}
                   </button>
@@ -2556,10 +2585,10 @@ const PickerModal = ({
                     onClick={() => onSugarChange(s)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: sugar === s ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: sugar === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: sugar === s ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: sugar === s ? accentColor : currentTheme.colors.cardColor,
+                  color: sugar === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: sugar === s ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {s}
                   </button>
@@ -2580,10 +2609,10 @@ const PickerModal = ({
                     onClick={() => onAlcoholIceChange(i)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: alcoholIce === i ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: alcoholIce === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: alcoholIce === i ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: alcoholIce === i ? accentColor : currentTheme.colors.cardColor,
+                  color: alcoholIce === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: alcoholIce === i ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {i}
                   </button>
@@ -2615,10 +2644,10 @@ const PickerModal = ({
                     onClick={() => onWaterTempChange(t)}
                     className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: waterTemp === t ? accentColor : currentTheme.colors.card.replace('bg-', ''),
-                      color: waterTemp === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
-                      borderColor: waterTemp === t ? accentColor : currentTheme.colors.border.replace('border-', '')
-                    }}
+                  backgroundColor: waterTemp === t ? accentColor : currentTheme.colors.cardColor,
+                  color: waterTemp === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                  borderColor: waterTemp === t ? accentColor : currentTheme.colors.borderColor
+                }}
                   >
                     {t}
                   </button>
