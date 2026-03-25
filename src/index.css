@@ -2,8 +2,162 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 设计系统升级：流体玻璃拟态 */
+:root {
+  /* 玻璃基底 */
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-blur: blur(20px) saturate(180%);
+  
+  /* 动态渐变（根据时间/场景变化） */
+  --gradient-morning: linear-gradient(135deg, #FFE4B5 0%, #DEB887 100%);
+  --gradient-afternoon: linear-gradient(135deg, #B08968 0%, #8B4513 100%);
+  --gradient-evening: linear-gradient(135deg, #2C3E50 0%, #4A6741 100%);
+  --gradient-night: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  
+  /* 流体动画 */
+  --fluid-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --bounce-ease: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 动态背景实现 */
+.background-fluid {
+  background: var(--gradient-morning);
+  transition: background 1s var(--fluid-ease);
+  animation: subtle-float 8s ease-in-out infinite;
+}
+
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.02); }
+}
+
+/* 玻璃拟态卡片 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s var(--fluid-ease);
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* 玻璃拟态按钮 */
+.glass-button {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  transition: all 0.3s var(--fluid-ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  transform: rotate(45deg);
+  animation: liquid-flow 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+.glass-button:hover::before {
+  opacity: 1;
+  animation: liquid-flow 2s ease-in-out infinite;
+}
+
+.glass-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px 0 rgba(31, 38, 135, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.glass-button:active {
+  transform: translateY(0);
+  transition: transform 0.1s;
+}
+
+@keyframes liquid-flow {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  overflow-x: hidden;
 }

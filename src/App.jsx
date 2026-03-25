@@ -13,7 +13,7 @@ import {
   YAxis
 } from "recharts";
 
-// ==================== 常量配置 ====================
+// 常量配置
 const TABS = ["记录", "数据趋势", "个人设置"];
 const TAB_ICONS = { 记录: "📝", 数据趋势: "📈", 个人设置: "⚙️" };
 const TREND_RANGES = ["今日", "本周", "本月", "本年", "近7天"];
@@ -23,6 +23,7 @@ const PROFILE_KEY = "mydrink-profile-v1";
 const CUSTOM_DRINKS_KEY = "mydrink-custom-drinks-v1";
 const INGREDIENTS_KEY = "mydrink-ingredients-v1";
 const THEME_KEY = "mydrink-theme-v1";
+const SLEEP_KEY = "mydrink-sleep-v1";
 const DRINK_TYPES = ["咖啡", "奶茶", "酒", "水", "茶", "果汁", "碳酸饮料"];
 
 // 主题配置
@@ -144,7 +145,7 @@ const ICE_OPTIONS = ["去冰", "少冰", "正常冰"];
 const SUGAR_OPTIONS = ["无糖", "微糖", "半糖", "全糖"];
 
 // 糖分系数（中杯半糖基准 g）
-const SUGAR_BASE = { 咖啡: 0, 奶茶: 10, 茶: 0, 果汁: 15, 碳酸饮料: 12 };
+const SUGAR_BASE = { 咖啡: 5, 奶茶: 10, 茶: 5, 果汁: 15, 碳酸饮料: 12 };
 const SUGAR_MULTIPLIER = { 无糖: 0, 微糖: 0.5, 半糖: 1.0, 全糖: 1.5 };
 
 // 热量基准（中杯基准 kcal）
@@ -199,6 +200,116 @@ const getContrastColor = (hexColor) => {
   return brightness > 128 ? "#000000" : "#ffffff";
 };
 
+// 计算距离 bedtime 的小时数
+const calculateHoursToBedtime = (currentTime, bedtime) => {
+  const [bedHour, bedMinute] = bedtime.split(':').map(Number);
+  const bedTime = new Date(currentTime);
+  bedTime.setHours(bedHour, bedMinute, 0, 0);
+  
+  // 如果 bedtime 已经过了，计算到第二天的 bedtime
+  if (bedTime < currentTime) {
+    bedTime.setDate(bedTime.getDate() + 1);
+  }
+  
+  const diffMs = bedTime - currentTime;
+  return diffMs / (1000 * 60 * 60);
+};
+
+// 智能建议算法
+const getCaffeineAdvice = (currentTime, remainingCaffeine, sleepData) => {
+  const hoursToBed = calculateHoursToBedtime(currentTime, sleepData.usualBedtime);
+  
+  // 根据咖啡因敏感度调整阈值
+  const sensitivityMultiplier = {
+    low: 1.5,
+    medium: 1.0,
+    high: 0.5
+  }[sleepData.sensitivityToCaffeine];
+  
+  const adjustedThreshold = 100 * sensitivityMultiplier;
+  
+  if (hoursToBed < 6 && remainingCaffeine > adjustedThreshold) {
+    return {
+      level: 'warning',
+      message: `距离入睡还有 ${hoursToBed.toFixed(1)} 小时，当前咖啡因可能影响睡眠质量`,
+      action: '建议改喝低咖啡因饮品或热牛奶',
+      alternativeDrinks: ['低因咖啡', '热牛奶', '洋甘菊茶']
+    };
+  }
+  
+  const currentHour = currentTime.getHours();
+  // 下午能量低谷期（14:00-16:00）
+  if (currentHour >= 14 && currentHour < 16 && remainingCaffeine < 50) {
+    return {
+      level: 'info',
+      message: '下午能量低谷期，适量咖啡因可提升专注力',
+      action: '建议摄入 50-100mg 咖啡因',
+      idealIntake: 75
+    };
+  }
+  
+  // 早晨（6:00-10:00）
+  if (currentHour >= 6 && currentHour < 10 && remainingCaffeine < 100) {
+    return {
+      level: 'info',
+      message: '早晨是摄入咖啡因的理想时段',
+      action: '适量咖啡因可帮助唤醒身体，提升一天的精神状态',
+      idealIntake: 100
+    };
+  }
+  
+  return null;
+};
+
+// 环形进度条组件
+const CircularProgress = ({ value, max, size = 80, strokeWidth = 8, color = '#3b82f6', backgroundColor = '#e5e7eb' }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const progress = (value / max) * 100;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  
+  return (
+    <div style={{ width: size, height: size, position: 'relative' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        {/* 背景圆环 */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={backgroundColor}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* 进度圆环 */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          style={{
+            transition: 'stroke-dashoffset 0.5s ease-in-out'
+          }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{value}</div>
+        <div style={{ fontSize: '10px', opacity: 0.7 }}>mg</div>
+      </div>
+    </div>
+  );
+};
+
 const PIE_COLORS = COLORS.pie;
 
 // ==================== 辅助函数 ====================
@@ -206,10 +317,10 @@ const PIE_COLORS = COLORS.pie;
 // 计算记录的营养成分
 const calculateNutrition = (type, cupSize, sugar, customAmount) => {
   if (type === "咖啡" || type === "奶茶" || type === "茶" || type === "果汁" || type === "碳酸饮料") {
-    const multiplier = CUP_MULTIPLIER[cupSize];
+    const multiplier = CUP_MULTIPLIER[cupSize] || 1.0;
     const baseCaffeine = CAFFEINE_BASE[type] || 0;
     const caffeine = Math.round(baseCaffeine * multiplier);
-    const sugarMultiplier = SUGAR_MULTIPLIER[sugar];
+    const sugarMultiplier = SUGAR_MULTIPLIER[sugar] || 1.0;
     const sugar_g = SUGAR_BASE[type] * multiplier * sugarMultiplier;
     const calories = CALORIES_BASE[type] * multiplier + sugar_g * 4;
     const fat_g = FAT_BASE[type] * multiplier;
@@ -400,9 +511,14 @@ const HealthAssistant = ({
   dailyCaloriesLimit,
   dailyFatLimit,
   currentTheme,
-  currentUiStyle
+  currentUiStyle,
+  sleepData
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [expandedSections, setExpandedSections] = useState({
+    advice: false,
+    trends: false
+  });
 
   // 每分钟更新一次时间
   useEffect(() => {
@@ -474,15 +590,54 @@ const HealthAssistant = ({
     return null;
   }, [todayRecords, currentTime, dailyWaterTarget, totalWater]);
 
-  // 咖啡因提醒
-  const caffeineMessage = useMemo(() => {
-    if (caffeineRemaining === 0) return null;
+  // 获取咖啡因环形进度条的颜色
+  const getCaffeineProgressColor = useMemo(() => {
     const currentHour = currentTime.getHours();
-    if (currentHour >= 20 && caffeineRemaining > 50) {
-      return `⚠️ 当前体内约含 ${caffeineRemaining} mg 咖啡因，可能影响睡眠，建议今晚避免再摄入。`;
+    const hoursToBed = calculateHoursToBedtime(currentTime, sleepData.usualBedtime);
+    
+    // 根据时间和距离睡眠时间调整颜色
+    if (currentHour >= 18 || hoursToBed < 4) {
+      // 晚上或接近睡眠时间，使用红色系
+      if (caffeineRemaining > 100) {
+        return '#ef4444'; // 红色
+      } else if (caffeineRemaining > 50) {
+        return '#f97316'; // 橙色
+      }
+    } else if (currentHour >= 14 && currentHour < 16) {
+      // 下午能量低谷期，使用橙色系
+      return '#f97316'; // 橙色
+    } else if (currentHour >= 6 && currentHour < 12) {
+      // 早晨，使用绿色系
+      return '#22c55e'; // 绿色
     }
-    return `💪 体内咖啡因剩余约 ${caffeineRemaining} mg，${caffeineRemaining > 100 ? "含量较高" : "在正常范围"}。`;
-  }, [caffeineRemaining, currentTime]);
+    // 默认颜色
+    return '#3b82f6'; // 蓝色
+  }, [currentTime, caffeineRemaining, sleepData]);
+
+  // 咖啡因提醒和智能建议
+  const caffeineInfo = useMemo(() => {
+    if (caffeineRemaining === 0) {
+      return {
+        message: "今日无咖啡因摄入",
+        advice: null
+      };
+    }
+    
+    const currentHour = currentTime.getHours();
+    let message = `💪 体内咖啡因剩余约 ${caffeineRemaining} mg，${caffeineRemaining > 100 ? "含量较高" : "在正常范围"}。`;
+    
+    // 获取智能建议
+    const advice = getCaffeineAdvice(currentTime, caffeineRemaining, sleepData);
+    
+    if (currentHour >= 20 && caffeineRemaining > 50) {
+      message = `⚠️ 当前体内约含 ${caffeineRemaining} mg 咖啡因，可能影响睡眠，建议今晚避免再摄入。`;
+    }
+    
+    return {
+      message,
+      advice
+    };
+  }, [caffeineRemaining, currentTime, sleepData]);
 
   // 酒精提醒
   const alcoholMessage = useMemo(() => {
@@ -564,88 +719,198 @@ const HealthAssistant = ({
     return advices;
   }, [userWeight, userAge, userBloodSugar, totalSugar, totalCalories, totalFat]);
 
+  // 切换展开/折叠状态
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   return (
     <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mb-4 transition-all duration-300`}>
-      <h3 className={`text-base font-semibold ${currentTheme.colors.text} mb-3`}>💡 健康助手</h3>
+      <h3 className={`text-base font-semibold ${currentTheme.colors.text} mb-4`}>💡 健康助手</h3>
 
-      <div className={`${currentTheme.colors.warning} rounded-xl p-3 mb-4 border ${currentTheme.colors.warningBorder}`}>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xl">📋</span>
-          <h4 className={`font-medium ${currentTheme.colors.text}`}>今日摄入建议</h4>
-        </div>
-        <ul className={`space-y-1 text-sm ${currentTheme.colors.textSecondary}`}>
-          {healthAdvice.map((advice, idx) => (
-            <li key={idx}>{advice}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={`${currentTheme.colors.info} rounded-xl p-3 mb-4 border ${currentTheme.colors.infoBorder}`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xl">📈</span>
-          <h4 className={`font-medium ${currentTheme.colors.text}`}>健康趋势关联</h4>
-        </div>
-        <p className={`text-xs ${currentTheme.colors.textLight} mb-3`}>
-          定期在「个人设置」中更新体重和血糖，系统将根据您的饮品记录分析健康趋势。
-        </p>
-        <div className="space-y-2">
-          {userWeight > 0 && (
-            <div className="flex justify-between text-xs">
-              <span className={currentTheme.colors.textSecondary}>体重与饮水关联</span>
-              <span className={`font-medium ${currentTheme.colors.text}`}>
-                {totalWater >= userWeight * 30 ? "✅ 达标" : "⚠️ 不足"}
-              </span>
-            </div>
-          )}
-          {userBloodSugar > 0 && (
-            <div className="flex justify-between text-xs">
-              <span className={currentTheme.colors.textSecondary}>血糖与糖分摄入</span>
-              <span className={`font-medium ${currentTheme.colors.text}`}>
-                {userBloodSugar < 6.1 && totalSugar <= dailySugarLimit ? "✅ 正常" : "⚠️ 需注意"}
-              </span>
-            </div>
-          )}
-          <div className="flex justify-between text-xs">
-            <span className={currentTheme.colors.textSecondary}>咖啡因与睡眠建议</span>
-            <span className={`font-medium ${currentTheme.colors.text}`}>
-              {currentTime.getHours() >= 20 && caffeineRemaining > 50 ? "⚠️ 避免摄入" : "✅ 可适量"}
-            </span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className={currentTheme.colors.textSecondary}>酒精代谢状态</span>
-            <span className={`font-medium ${currentTheme.colors.text}`}>
-              {alcoholBAC > 0.03 ? "⚠️ 不宜驾驶" : "✅ 安全"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-3">
+      {/* 核心提醒区域 */}
+      <div className="space-y-4 mb-4">
+        {/* 补水提醒 */}
         {waterReminder && (
-          <div className="flex items-start gap-2 text-sm">
-            <span className="text-blue-500">💧</span>
-            <p className={currentTheme.colors.textSecondary}>{waterReminder}</p>
+          <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-blue-50 to-blue-100 p-3 ring-1 ring-blue-200 transition-all duration-300 hover:shadow-md animate-fadeIn dark:from-blue-900/30 dark:to-blue-800/20 dark:ring-blue-800/50`}>
+            <div className="flex items-start gap-3">
+              <span className="text-blue-500 text-xl">💧</span>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>补水提醒</p>
+                <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{waterReminder}</p>
+              </div>
+            </div>
           </div>
         )}
-        <div className="flex items-start gap-2 text-sm">
-          <span className="text-orange-500">☕️</span>
-          <p className={currentTheme.colors.textSecondary}>{caffeineMessage || "今日无咖啡因摄入"}</p>
+
+        {/* 咖啡因状态 */}
+        <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-orange-50 to-orange-100 p-3 ring-1 ring-orange-200 transition-all duration-300 hover:shadow-md dark:from-orange-900/30 dark:to-orange-800/20 dark:ring-orange-800/50`}>
+          <div className="flex items-start gap-3">
+            <div className="transition-transform duration-500 hover:scale-105">
+              <CircularProgress
+                value={Math.round(caffeineRemaining)}
+                max={400}
+                size={60}
+                strokeWidth={6}
+                color={getCaffeineProgressColor}
+                backgroundColor={currentTheme.colors.borderColor}
+              />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-500">☕️</span>
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>咖啡因状态</p>
+              </div>
+              <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{caffeineInfo.message}</p>
+              {caffeineInfo.advice && (
+                <div className={`mt-2 p-3 rounded-lg border ${caffeineInfo.level === 'warning' ? currentTheme.colors.warningBorder : currentTheme.colors.infoBorder} ${caffeineInfo.level === 'warning' ? currentTheme.colors.warning : currentTheme.colors.info} transition-all duration-300 hover:shadow-md animate-slideIn`}>
+                  <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{caffeineInfo.advice.message}</p>
+                  <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>{caffeineInfo.advice.action}</p>
+                  {caffeineInfo.advice.alternativeDrinks && (
+                    <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>替代饮品: {caffeineInfo.advice.alternativeDrinks.join('、')}</p>
+                  )}
+                  {caffeineInfo.advice.idealIntake && (
+                    <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>建议摄入量: {caffeineInfo.advice.idealIntake}mg</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-start gap-2 text-sm">
-          <span className="text-amber-500">🍺</span>
-          <p className={currentTheme.colors.textSecondary}>{alcoholMessage || "今日无酒精摄入"}</p>
+
+        {/* 酒精提醒 */}
+        {alcoholMessage && (
+          <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-amber-50 to-amber-100 p-3 ring-1 ring-amber-200 transition-all duration-300 hover:shadow-md dark:from-amber-900/30 dark:to-amber-800/20 dark:ring-amber-800/50`}>
+            <div className="flex items-start gap-3">
+              <span className="text-amber-500 text-xl">🍺</span>
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>酒精代谢提醒</p>
+                <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{alcoholMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 超标提醒 */}
+        <div className="space-y-3">
+          {(sugarMessage && totalSugar > dailySugarLimit) && (
+            <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-pink-50 to-pink-100 p-3 ring-1 ring-pink-200 transition-all duration-300 hover:shadow-md dark:from-pink-900/30 dark:to-pink-800/20 dark:ring-pink-800/50`}>
+              <div className="flex items-start gap-3">
+                <span className="text-pink-500 text-xl">🍬</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${currentTheme.colors.text}`}>糖分摄入提醒</p>
+                  <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{sugarMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {(caloriesMessage && totalCalories > dailyCaloriesLimit) && (
+            <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-red-50 to-red-100 p-3 ring-1 ring-red-200 transition-all duration-300 hover:shadow-md dark:from-red-900/30 dark:to-red-800/20 dark:ring-red-800/50`}>
+              <div className="flex items-start gap-3">
+                <span className="text-red-500 text-xl">🔥</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${currentTheme.colors.text}`}>热量摄入提醒</p>
+                  <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{caloriesMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {(fatMessage && totalFat > dailyFatLimit) && (
+            <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-green-50 to-green-100 p-3 ring-1 ring-green-200 transition-all duration-300 hover:shadow-md dark:from-green-900/30 dark:to-green-800/20 dark:ring-green-800/50`}>
+              <div className="flex items-start gap-3">
+                <span className="text-green-500 text-xl">🥑</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${currentTheme.colors.text}`}>脂肪摄入提醒</p>
+                  <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{fatMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex items-start gap-2 text-sm">
-          <span className="text-pink-500">🍬</span>
-          <p className={currentTheme.colors.textSecondary}>{sugarMessage || "今日无糖分摄入"}</p>
+      </div>
+
+      {/* 可折叠区域 */}
+      <div className="space-y-4">
+        {/* 健康建议 */}
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-3 ring-1 ${currentTheme.colors.border} transition-all duration-300`}>
+          <button 
+            onClick={() => toggleSection('advice')}
+            className="flex justify-between items-center w-full text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <h4 className={`font-medium ${currentTheme.colors.text}`}>今日摄入建议</h4>
+            </div>
+            <span className={`${currentTheme.colors.textSecondary} transition-transform duration-300 ${expandedSections.advice ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+          {expandedSections.advice && (
+            <ul className={`mt-3 space-y-1 text-sm ${currentTheme.colors.textSecondary} animate-fadeIn`}>
+              {healthAdvice.map((advice, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-xs mt-1">•</span>
+                  <span>{advice}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-        <div className="flex items-start gap-2 text-sm">
-          <span className="text-red-500">🔥</span>
-          <p className={currentTheme.colors.textSecondary}>{caloriesMessage || "今日无热量摄入"}</p>
-        </div>
-        <div className="flex items-start gap-2 text-sm">
-          <span className="text-green-500">🥑</span>
-          <p className={currentTheme.colors.textSecondary}>{fatMessage || "今日无脂肪摄入"}</p>
+
+        {/* 健康趋势关联 */}
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-3 ring-1 ${currentTheme.colors.border} transition-all duration-300`}>
+          <button 
+            onClick={() => toggleSection('trends')}
+            className="flex justify-between items-center w-full text-left"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📈</span>
+              <h4 className={`font-medium ${currentTheme.colors.text}`}>健康趋势关联</h4>
+            </div>
+            <span className={`${currentTheme.colors.textSecondary} transition-transform duration-300 ${expandedSections.trends ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+          {expandedSections.trends && (
+            <div className="mt-3 animate-fadeIn">
+              <p className={`text-xs ${currentTheme.colors.textLight} mb-3`}>
+                定期在「个人设置」中更新体重和血糖，系统将根据您的饮品记录分析健康趋势。
+              </p>
+              <div className="space-y-2">
+                {userWeight > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className={currentTheme.colors.textSecondary}>体重与饮水关联</span>
+                    <span className={`font-medium ${currentTheme.colors.text}`}>
+                      {totalWater >= userWeight * 30 ? "✅ 达标" : "⚠️ 不足"}
+                    </span>
+                  </div>
+                )}
+                {userBloodSugar > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span className={currentTheme.colors.textSecondary}>血糖与糖分摄入</span>
+                    <span className={`font-medium ${currentTheme.colors.text}`}>
+                      {userBloodSugar < 6.1 && totalSugar <= dailySugarLimit ? "✅ 正常" : "⚠️ 需注意"}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs">
+                  <span className={currentTheme.colors.textSecondary}>咖啡因与睡眠建议</span>
+                  <span className={`font-medium ${currentTheme.colors.text}`}>
+                    {currentTime.getHours() >= 20 && caffeineRemaining > 50 ? "⚠️ 避免摄入" : "✅ 可适量"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className={currentTheme.colors.textSecondary}>酒精代谢状态</span>
+                  <span className={`font-medium ${currentTheme.colors.text}`}>
+                    {alcoholBAC > 0.03 ? "⚠️ 不宜驾驶" : "✅ 安全"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -680,7 +945,8 @@ const RecordTab = ({
   userBloodSugar,
   currentTheme,
   currentUiStyle,
-  accentColor
+  accentColor,
+  sleepData
 }) => {
   const scrollContainerRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -718,68 +984,210 @@ const RecordTab = ({
 
   return (
     <section className="relative space-y-4">
-      <div
-        ref={scrollContainerRef}
-        className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+      <div className="relative">
+        {/* 左侧渐隐效果 */}
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 dark:from-gray-800"></div>
+        {/* 右侧渐隐效果 */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 dark:from-gray-800"></div>
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
         <div className="flex">
           <div className="flex-shrink-0 w-full snap-start">
             <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-              <p className={`text-sm ${currentTheme.colors.textLight}`}>💧 今天已摄入水分</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalWater} ml</p>
-              <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : currentTheme.colors.textLight}`}>
-                每日喝水目标 {dailyWaterTarget} ml {exceedWaterTarget ? "（已达成）" : `（还差 ${Math.max(0, dailyWaterTarget - totalWater)} ml）`}
-              </p>
-              <div className="mt-2">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className={currentTheme.colors.textSecondary}>饮水进度</span>
-                  <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%`,
-                        backgroundColor: accentColor
-                      }}
-                    />
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text} mb-4`}>📋 今日摄入</h2>
+              
+              {/* 网格布局的指标卡片 */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* 水分卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-blue-50 to-blue-100 p-3 ring-1 ring-blue-200 transition-all duration-300 hover:shadow-md dark:from-blue-900/30 dark:to-blue-800/20 dark:ring-blue-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>💧 水分</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalWater} ml</p>
+                      <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : currentTheme.colors.textLight}`}>
+                        目标 {dailyWaterTarget} ml
+                      </p>
+                    </div>
+                    <div className="text-2xl">💧</div>
                   </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%`,
+                          backgroundColor: '#3b82f6'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 咖啡因卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-orange-50 to-orange-100 p-3 ring-1 ring-orange-200 transition-all duration-300 hover:shadow-md dark:from-orange-900/30 dark:to-orange-800/20 dark:ring-orange-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>☕️ 咖啡因</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalCaffeine} mg</p>
+                      <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                        上限 {dailyLimit} mg
+                      </p>
+                    </div>
+                    <div className="text-2xl">☕️</div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalCaffeine / dailyLimit) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalCaffeine / dailyLimit) * 100)}%`,
+                          backgroundColor: '#f97316'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 糖分卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-pink-50 to-pink-100 p-3 ring-1 ring-pink-200 transition-all duration-300 hover:shadow-md dark:from-pink-900/30 dark:to-pink-800/20 dark:ring-pink-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🍬 糖分</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalSugar} g</p>
+                      <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                        上限 {dailySugarLimit} g
+                      </p>
+                    </div>
+                    <div className="text-2xl">🍬</div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalSugar / dailySugarLimit) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalSugar / dailySugarLimit) * 100)}%`,
+                          backgroundColor: '#ec489a'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 酒精卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-amber-50 to-amber-100 p-3 ring-1 ring-amber-200 transition-all duration-300 hover:shadow-md dark:from-amber-900/30 dark:to-amber-800/20 dark:ring-amber-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🍺 酒精</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalAlcohol} mg</p>
+                      <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                        上限 {dailyAlcoholLimit} mg
+                      </p>
+                    </div>
+                    <div className="text-2xl">🍺</div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalAlcohol / dailyAlcoholLimit) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalAlcohol / dailyAlcoholLimit) * 100)}%`,
+                          backgroundColor: '#f59e0b'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 热量卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-red-50 to-red-100 p-3 ring-1 ring-red-200 transition-all duration-300 hover:shadow-md dark:from-red-900/30 dark:to-red-800/20 dark:ring-red-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🔥 热量</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalCalories} kcal</p>
+                      <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                        上限 {dailyCaloriesLimit} kcal
+                      </p>
+                    </div>
+                    <div className="text-2xl">🔥</div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalCalories / dailyCaloriesLimit) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalCalories / dailyCaloriesLimit) * 100)}%`,
+                          backgroundColor: '#ef4444'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 脂肪卡片 */}
+                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-green-50 to-green-100 p-3 ring-1 ring-green-200 transition-all duration-300 hover:shadow-md dark:from-green-900/30 dark:to-green-800/20 dark:ring-green-800/50`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🥑 脂肪</p>
+                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalFat} g</p>
+                      <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                        上限 {dailyFatLimit} g
+                      </p>
+                    </div>
+                    <div className="text-2xl">🥑</div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className={currentTheme.colors.textSecondary}>进度</span>
+                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalFat / dailyFatLimit) * 100))}%</span>
+                    </div>
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                      <div
+                        className="h-1.5 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(100, (totalFat / dailyFatLimit) * 100)}%`,
+                          backgroundColor: '#10b981'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>☕️ 今天已摄入咖啡因</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalCaffeine} mg</p>
-              <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
-                每日咖啡因上限 {dailyLimit} mg {exceedLimit ? "（已超出）" : ""}
-              </p>
-              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🍬 今天已摄入糖分</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalSugar} g</p>
-              <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
-                每日糖分上限 {dailySugarLimit} g {exceedSugarLimit ? "（已超出）" : ""}
-              </p>
-              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🍺 今天已摄入酒精</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalAlcohol} mg</p>
-              <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
-                每日酒精上限 {dailyAlcoholLimit} mg {exceedAlcoholLimit ? "（已超出）" : ""}
-              </p>
-              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🔥 今天已摄入热量</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalCalories} kcal</p>
-              <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
-                每日热量上限 {dailyCaloriesLimit} kcal {exceedCaloriesLimit ? "（已超出）" : ""}
-              </p>
-              <p className={`mt-4 text-sm ${currentTheme.colors.textLight}`}>🥑 今天已摄入脂肪</p>
-              <p className={`mt-1 text-3xl font-bold ${currentTheme.colors.text}`}>{totalFat} g</p>
-              <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
-                每日脂肪上限 {dailyFatLimit} g {exceedFatLimit ? "（已超出）" : ""}
-              </p>
-              <div className={`mt-4 pt-2 border-t ${currentTheme.colors.border}`}>
-                <p className={`text-xs ${currentTheme.colors.textLight}`}>🎯 今日剩余</p>
-                <RemainingItem label="水分" value={totalWater} limit={dailyWaterTarget} unit="ml" normalColor={currentTheme.colors.textSecondary} />
-                <RemainingItem label="咖啡因" value={totalCaffeine} limit={dailyLimit} unit="mg" />
-                <RemainingItem label="糖分" value={totalSugar} limit={dailySugarLimit} unit="g" />
-                <RemainingItem label="酒精" value={totalAlcohol} limit={dailyAlcoholLimit} unit="mg" />
-                <RemainingItem label="热量" value={totalCalories} limit={dailyCaloriesLimit} unit="kcal" />
-                <RemainingItem label="脂肪" value={totalFat} limit={dailyFatLimit} unit="g" />
+              
+              {/* 今日剩余部分 */}
+              <div className={`mt-4 pt-3 border-t ${currentTheme.colors.border}`}>
+                <h3 className={`text-sm font-medium ${currentTheme.colors.text} mb-2`}>🎯 今日剩余</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <RemainingItem label="水分" value={totalWater} limit={dailyWaterTarget} unit="ml" normalColor={currentTheme.colors.textSecondary} />
+                  <RemainingItem label="咖啡因" value={totalCaffeine} limit={dailyLimit} unit="mg" />
+                  <RemainingItem label="糖分" value={totalSugar} limit={dailySugarLimit} unit="g" />
+                  <RemainingItem label="酒精" value={totalAlcohol} limit={dailyAlcoholLimit} unit="mg" />
+                  <RemainingItem label="热量" value={totalCalories} limit={dailyCaloriesLimit} unit="kcal" />
+                  <RemainingItem label="脂肪" value={totalFat} limit={dailyFatLimit} unit="g" />
+                </div>
               </div>
             </div>
           </div>
@@ -800,8 +1208,10 @@ const RecordTab = ({
             dailyFatLimit={dailyFatLimit}
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
+            sleepData={sleepData}
           />
           </div>
+        </div>
         </div>
       </div>
       <div className="flex justify-center gap-2">
@@ -811,7 +1221,7 @@ const RecordTab = ({
             onClick={() => scrollToCard(idx)}
             className={`h-2 rounded-full transition-all ${activeIndex === idx ? 'w-4' : 'w-2'}`}
             style={{
-              backgroundColor: activeIndex === idx ? accentColor : currentTheme.colors.borderLight.replace('border-', '')
+              backgroundColor: activeIndex === idx ? accentColor : 'rgba(255, 255, 255, 0.2)'
             }}
           />
         ))}
@@ -819,7 +1229,7 @@ const RecordTab = ({
       <div className="fixed bottom-20 right-6 z-20">
         <button
           onClick={() => onAddDrink("咖啡")}
-          className="flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:bg-opacity-90 transition-all active:scale-95"
+          className="flex items-center justify-center w-14 h-14 rounded-full shadow-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all active:scale-95"
           style={{
             backgroundColor: accentColor,
             color: getContrastColor(accentColor)
@@ -829,6 +1239,52 @@ const RecordTab = ({
         </button>
       </div>
     </section>
+  );
+};
+
+// 迷你环形进度条组件
+const MiniCircularProgress = ({ value, max, size = 40, strokeWidth = 4, color = '#3b82f6' }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const progress = (value / max) * 100;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  
+  return (
+    <div style={{ width: size, height: size, position: 'relative' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          style={{
+            transition: 'stroke-dashoffset 0.5s ease-in-out'
+          }}
+        />
+      </svg>
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '8px', fontWeight: 'bold' }}>{Math.round((progress))}%</div>
+      </div>
+    </div>
   );
 };
 
@@ -843,215 +1299,114 @@ const TrendTab = ({
   onDelete,
   currentTheme,
   currentUiStyle,
-  accentColor,
-  trendRange,
-  setTrendRange,
-  chartData
+  accentColor
 }) => {
-  const [caffeineRange, setCaffeineRange] = useState("今日");
-  const [alcoholRange, setAlcoholRange] = useState("今日");
-  const [waterRange, setWaterRange] = useState("今日");
-  const [sugarRange, setSugarRange] = useState("今日");
-  const [caloriesRange, setCaloriesRange] = useState("今日");
-  const [fatRange, setFatRange] = useState("今日");
+  const [expanded, setExpanded] = useState(true);
+  const [selectedMetrics, setSelectedMetrics] = useState(['caffeine', 'water']);
+  const [trendRange, setTrendRange] = useState('近7天');
 
-  // 优化图表数据计算，使用 useMemo 缓存结果
-  const caffeineChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, caffeineRange, today);
-    return getTrendChartData(filtered, caffeineRange, today, 'caffeine');
-  }, [normalizedRecords, caffeineRange, today]);
-  
-  const alcoholChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, alcoholRange, today);
-    return getTrendChartData(filtered, alcoholRange, today, 'alcohol');
-  }, [normalizedRecords, alcoholRange, today]);
-  
-  const waterChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, waterRange, today);
-    return getTrendChartData(filtered, waterRange, today, 'water');
-  }, [normalizedRecords, waterRange, today]);
-  
-  const sugarChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, sugarRange, today);
-    return getTrendChartData(filtered, sugarRange, today, 'sugar_g');
-  }, [normalizedRecords, sugarRange, today]);
-  
-  const caloriesChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, caloriesRange, today);
-    return getTrendChartData(filtered, caloriesRange, today, 'calories_kcal');
-  }, [normalizedRecords, caloriesRange, today]);
-  
-  const fatChartData = useMemo(() => {
-    const filtered = getFilteredRecordsForTrend(normalizedRecords, fatRange, today);
-    return getTrendChartData(filtered, fatRange, today, 'fat_g');
-  }, [normalizedRecords, fatRange, today]);
-
-  const [pieRange, setPieRange] = useState("今日");
-  const pieFilteredRecords = useMemo(
-    () => getFilteredRecordsForTrend(normalizedRecords, pieRange, today),
-    [normalizedRecords, pieRange, today]
+  // 计算今日总览数据
+  const todayRecords = useMemo(
+    () => normalizedRecords.filter((r) => isSameDay(r._date, today)),
+    [normalizedRecords, today]
   );
-  const pieData = useMemo(() => {
-    return DRINK_TYPES.map((type) => ({
-      name: type,
-      value: pieFilteredRecords.filter((r) => r.type === type).length
-    }));
-  }, [pieFilteredRecords]);
 
-  const filteredPieData = pieData.filter(item => item.value > 0);
-  const totalCount = filteredPieData.reduce((sum, d) => sum + d.value, 0);
+  const todaySummary = useMemo(() => {
+    let caffeine = 0;
+    let alcohol = 0;
+    let water = 0;
+    let sugar_g = 0;
+    let calories_kcal = 0;
+    let fat_g = 0;
 
-  const renderCustomLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
-    const RADIAN = Math.PI / 180;
-    const midRadius = outerRadius + 20;
-    const horizontalOffset = 15;
-    const midX = cx + midRadius * Math.cos(-midAngle * RADIAN);
-    const midY = cy + midRadius * Math.sin(-midAngle * RADIAN);
-    const isRight = midX > cx;
-    const textX = midX + (isRight ? horizontalOffset : -horizontalOffset);
-    const textY = midY;
-    const elbowX = textX;
-    const elbowY = midY;
-    const startX = cx + outerRadius * Math.cos(-midAngle * RADIAN);
-    const startY = cy + outerRadius * Math.sin(-midAngle * RADIAN);
-    const percentValue = (percent * 100).toFixed(0);
-    const textAnchor = isRight ? "start" : "end";
-
-    return (
-      <g>
-        <path
-          d={`M${startX},${startY} L${midX},${midY} L${elbowX},${elbowY}`}
-          stroke={currentTheme.name === 'light' ? '#1e293b' : '#9ca3af'}
-          fill="none"
-          strokeWidth={1.5}
-        />
-        <text
-          x={textX}
-          y={textY}
-          fill={currentTheme.name === 'light' ? '#000000' : '#f3f4f6'}
-          fontSize={12}
-          fontWeight="500"
-          textAnchor={textAnchor}
-          dominantBaseline="middle"
-        >
-          {`${name} ${percentValue}%`}
-        </text>
-      </g>
-    );
-  };
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const { name, value } = payload[0];
-      const percent = totalCount === 0 ? 0 : ((value / totalCount) * 100).toFixed(1);
-      return (
-        <div className={`rounded-lg ${currentTheme.colors.card} p-2 shadow-md border ${currentTheme.colors.border} text-sm`}>
-          <p className={`font-medium ${currentTheme.colors.text}`}>{name}</p>
-          <p className={`${currentTheme.colors.textSecondary}`}>{value} 杯 ({percent}%)</p>
-        </div>
-      );
+    for (const r of todayRecords) {
+      caffeine += r.caffeine || 0;
+      alcohol += r.alcohol || 0;
+      water += r.water || 0;
+      sugar_g += r.sugar_g || 0;
+      calories_kcal += r.calories_kcal || 0;
+      fat_g += r.fat_g || 0;
     }
-    return null;
+
+    return {
+      caffeine,
+      alcohol,
+      water,
+      sugar_g,
+      calories_kcal,
+      fat_g
+    };
+  }, [todayRecords]);
+
+  // 健康目标值
+  const healthGoals = {
+    caffeine: 400,
+    alcohol: 14000,
+    water: 2000,
+    sugar_g: 50,
+    calories_kcal: 2000,
+    fat_g: 70
   };
 
-  const getPieTitle = () => {
-    switch (pieRange) {
-      case "今日": return "今日饮品占比";
-      case "本周": return "本周饮品占比";
-      case "本月": return "本月饮品占比";
-      case "本年": return "本年饮品占比";
-      case "近7天": return "近7天饮品占比";
-      default: return "饮品占比";
-    }
-  };
+  // 生成关联分析洞察
+  const generateInsights = useMemo(() => {
+    if (normalizedRecords.length < 7) return [];
 
-  const scrollContainerRef = useRef(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      const index = Math.round(scrollContainerRef.current.scrollLeft / scrollContainerRef.current.clientWidth);
-      setActiveIndex(index);
+    const insights = [];
+    
+    // 示例洞察：咖啡因与水分关联
+    const coffeeRecords = normalizedRecords.filter(r => r.type === '咖啡' || r.type === '奶茶');
+    const waterRecords = normalizedRecords.filter(r => r.type === '水');
+    
+    if (coffeeRecords.length > 0 && waterRecords.length > 0) {
+      const coffeeDays = new Set(coffeeRecords.map(r => dateToKey(r._date)));
+      const waterOnCoffeeDays = waterRecords.filter(r => coffeeDays.has(dateToKey(r._date))).length;
+      const waterRatio = waterOnCoffeeDays / waterRecords.length;
+      
+      if (waterRatio > 0.6) {
+        insights.push('您在喝咖啡的日子里更注重补水，这是个好习惯！');
+      }
     }
-  };
-  
-  const scrollToCard = (index) => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        left: index * scrollContainerRef.current.clientWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
-  
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
 
-  const renderTrendCard = (title, unit, chartData, range, setRange, fieldColor = COLORS.primary) => {
-    return (
-      <div className="flex-shrink-0 w-full snap-start">
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-          <div className="mb-2 flex items-center gap-2">
-            <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>
-              📊 {title}趋势
-            </h2>
-            <div className={`flex-1 min-w-0 overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
-              <div className="flex gap-1">
-                {TREND_RANGES.map((r) => (
-                  <button
-                    key={r}
-                    className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
-                      range === r ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
-                    }`}
-                    onClick={() => setRange(r)}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
-              <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
-                <defs>
-                  <linearGradient id={`gradient-${title}-${currentTheme.name}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={fieldColor} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={fieldColor} stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563'} />
-                <XAxis 
-                  dataKey="time" 
-                  tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
-                  axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
-                  tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
-                  axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
-                  tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
-                  domain={[0, 'dataMax + 1']}
-                />
-                <Tooltip contentStyle={{ backgroundColor: currentTheme.colors.card, borderColor: currentTheme.colors.border, color: currentTheme.colors.text }} />
-                <Area
-                  type="monotone"
-                  dataKey="cumulative"
-                  stroke={fieldColor}
-                  fillOpacity={1}
-                  fill={`url(#gradient-${title}-${currentTheme.name})`}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    );
-  };
+    // 示例洞察：周末饮品习惯
+    const weekendRecords = normalizedRecords.filter(r => {
+      const day = r._date.getDay();
+      return day === 0 || day === 6;
+    });
+    
+    if (weekendRecords.length > 0) {
+      const weekendCoffee = weekendRecords.filter(r => r.type === '咖啡').length;
+      const weekdayCoffee = normalizedRecords.filter(r => {
+        const day = r._date.getDay();
+        return day !== 0 && day !== 6 && (r.type === '咖啡');
+      }).length;
+      
+      if (weekendCoffee > weekdayCoffee) {
+        insights.push('您在周末更倾向于喝咖啡，享受悠闲时光！');
+      }
+    }
+
+    return insights.length > 0 ? insights : ['继续保持良好的饮品记录习惯！'];
+  }, [normalizedRecords]);
+
+  // 准备图表数据
+  const chartData = useMemo(() => {
+    const filtered = getFilteredRecordsForTrend(normalizedRecords, trendRange, today);
+    return getTrendChartData(filtered, trendRange, today, selectedMetrics[0]);
+  }, [normalizedRecords, trendRange, today, selectedMetrics]);
+
+  // 指标配置
+  const metricsConfig = [
+    { key: 'caffeine', name: '咖啡因', unit: 'mg', color: '#9c7a5f' },
+    { key: 'water', name: '水分', unit: 'ml', color: '#3b82f6' },
+    { key: 'sugar_g', name: '糖分', unit: 'g', color: '#ec489a' },
+    { key: 'calories_kcal', name: '热量', unit: 'kcal', color: '#ef4444' },
+    { key: 'alcohol', name: '酒精', unit: 'mg', color: '#f59e0b' },
+    { key: 'fat_g', name: '脂肪', unit: 'g', color: '#10b981' }
+  ];
+
+  // 检查是否有数据
+  const hasData = normalizedRecords.length > 0;
 
   const CalendarHeatmap = ({ accentColor }) => {
     const [currentDate, setCurrentDate] = useState(new Date(today));
@@ -1087,13 +1442,11 @@ const TrendTab = ({
       if (count === 0) return currentTheme.colors.card;
       if (maxCount === 0) return currentTheme.colors.card;
       const intensity = count / maxCount;
-      // 从 accentColor 中提取 RGB 值
       const hex = accentColor.replace('#', '');
       const r = parseInt(hex.substring(0, 2), 16);
       const g = parseInt(hex.substring(2, 4), 16);
       const b = parseInt(hex.substring(4, 6), 16);
-      // 根据强度调整亮度
-      const lightness = 1 - intensity * 0.5; // 从 100% 到 50%
+      const lightness = 1 - intensity * 0.5;
       return `rgb(${Math.round(r * lightness)}, ${Math.round(g * lightness)}, ${Math.round(b * lightness)})`;
     };
 
@@ -1113,7 +1466,6 @@ const TrendTab = ({
       date.setDate(date.getDate() + i);
       const day = date.getDate();
       const isCurrentMonth = date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
-      // 只有当前月份的日期才使用monthRecords中的数据，其他月份的日期count为0
       const count = isCurrentMonth ? (monthRecords.get(day) || 0) : 0;
       cells.push({ date, day, isCurrentMonth, count });
     }
@@ -1123,7 +1475,7 @@ const TrendTab = ({
         <div className="flex justify-between items-center mb-4">
           <button
             onClick={prevMonth}
-            className={`px-3 py-1 rounded-md bg-slate-100 ${currentTheme.colors.textSecondary} hover:bg-slate-200 transition-colors duration-300`}
+            className={`px-3 py-1 rounded-md ${currentTheme.colors.card} ${currentTheme.colors.textSecondary} hover:${currentTheme.colors.borderLight} transition-colors duration-300`}
           >
             ◀
           </button>
@@ -1132,7 +1484,7 @@ const TrendTab = ({
           </h3>
           <button
             onClick={nextMonth}
-            className={`px-3 py-1 rounded-md bg-slate-100 ${currentTheme.colors.textSecondary} hover:bg-slate-200 transition-colors duration-300`}
+            className={`px-3 py-1 rounded-md ${currentTheme.colors.card} ${currentTheme.colors.textSecondary} hover:${currentTheme.colors.borderLight} transition-colors duration-300`}
           >
             ▶
           </button>
@@ -1143,25 +1495,30 @@ const TrendTab = ({
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
-  {cells.map((cell, idx) => (
-    <div
-      key={`${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`}
-      className={`
-        aspect-square flex items-center justify-center rounded-lg text-sm
-        ${!cell.isCurrentMonth ? currentTheme.colors.textLight : currentTheme.colors.text}
-        border ${currentTheme.colors.border} hover:shadow-md transition
-      `}
-      style={{
-        backgroundColor: cell.isCurrentMonth && cell.count > 0
-          ? getBgColorStyle(cell.count)
-          : currentTheme.colors.card
-      }}
-      title={cell.isCurrentMonth ? `${cell.day}日：${cell.count}杯` : ''}
-    >
-      {cell.isCurrentMonth ? cell.day : ""}
-    </div>
-  ))}
-</div>
+          {cells.map((cell, idx) => (
+            <div
+              key={`${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`}
+              role="button"
+              tabIndex="0"
+              className={`
+                aspect-square flex items-center justify-center rounded-lg text-sm min-h-[44px]
+                transition
+              `}
+              style={{
+                backgroundColor: cell.isCurrentMonth && cell.count > 0
+                  ? getBgColorStyle(cell.count)
+                  : currentTheme.colors.card,
+                color: cell.isCurrentMonth ? currentTheme.colors.text : currentTheme.colors.textLight,
+                border: `1px solid ${currentTheme.colors.borderColor}`,
+                boxShadow: 'hover: 0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              title={cell.isCurrentMonth ? `${cell.day}日：${cell.count}杯` : ''}
+              aria-label={cell.isCurrentMonth ? `${cell.day}日，记录了${cell.count}杯饮品` : `${cell.day}日`}
+            >
+              {cell.isCurrentMonth ? cell.day : ""}
+            </div>
+          ))}
+        </div>
         <div className={`mt-3 text-xs ${currentTheme.colors.textLight} text-center`}>
           颜色越深表示当天记录杯数越多
         </div>
@@ -1169,35 +1526,80 @@ const TrendTab = ({
     );
   };
 
-  // 检查是否有数据
-  const hasData = normalizedRecords.length > 0;
-
-  const trendCards = [
-    { title: "咖啡因", unit: "mg", chartData: caffeineChartData, range: caffeineRange, setRange: setCaffeineRange, color: "#9c7a5f" },
-    { title: "酒精", unit: "mg", chartData: alcoholChartData, range: alcoholRange, setRange: setAlcoholRange, color: "#f59e0b" },
-    { title: "水分", unit: "ml", chartData: waterChartData, range: waterRange, setRange: setWaterRange, color: "#3b82f6" },
-    { title: "糖分", unit: "g", chartData: sugarChartData, range: sugarRange, setRange: setSugarRange, color: "#ec489a" },
-    { title: "热量", unit: "kcal", chartData: caloriesChartData, range: caloriesRange, setRange: setCaloriesRange, color: "#ef4444" },
-    { title: "脂肪", unit: "g", chartData: fatChartData, range: fatRange, setRange: setFatRange, color: "#10b981" }
-  ];
-
   return (
     <section className="space-y-4">
       {hasData ? (
         <>
           <CalendarHeatmap accentColor={accentColor} />
+          
+          {/* 今日总览卡片 */}
           <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-            <div className="mb-2 flex items-center gap-2">
-              <h2 className={`text-base font-semibold ${currentTheme.colors.text} flex-shrink-0`}>🥤 {getPieTitle()}</h2>
-              <div className={`flex-1 min-w-0 overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>📋 今日总览</h2>
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className={`text-sm ${currentTheme.colors.textSecondary} hover:${currentTheme.colors.text}`}
+              >
+                {expanded ? '收起' : '展开'}
+              </button>
+            </div>
+            {expanded && (
+              <div className="grid grid-cols-3 gap-4">
+                {metricsConfig.map((metric) => {
+                  const value = todaySummary[metric.key];
+                  const goal = healthGoals[metric.key];
+                  const isExceeded = value > goal;
+                  
+                  return (
+                    <div key={metric.key} className="flex flex-col items-center">
+                      <MiniCircularProgress
+                        value={value}
+                        max={goal}
+                        color={isExceeded ? '#ef4444' : metric.color}
+                      />
+                      <p className={`mt-2 text-xs ${currentTheme.colors.textSecondary}`}>{metric.name}</p>
+                      <p className={`text-sm font-medium ${isExceeded ? 'text-rose-500' : currentTheme.colors.text}`}>
+                        {value} {metric.unit}
+                      </p>
+                      <p className={`text-xs ${currentTheme.colors.textLight}`}>目标: {goal} {metric.unit}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 核心趋势图 */}
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <div className="mb-4">
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text} mb-3`}>📊 核心趋势</h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {metricsConfig.map((metric) => (
+                  <button
+                    key={metric.key}
+                    className={`px-3 py-1 rounded-full text-xs transition-colors duration-300 ${selectedMetrics[0] === metric.key ? currentTheme.colors.border : ''}`}
+                    style={{
+                      backgroundColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.cardColor,
+                      color: selectedMetrics[0] === metric.key ? getContrastColor(metric.color) : currentTheme.colors.textSecondaryColor,
+                      borderColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.borderColor
+                    }}
+                    onClick={() => {
+                      setSelectedMetrics([metric.key]);
+                    }}
+                  >
+                    {metric.name}
+                  </button>
+                ))}
+              </div>
+              <div className={`flex overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
                 <div className="flex gap-1">
                   {TREND_RANGES.map((range) => (
                     <button
                       key={range}
                       className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
-                        pieRange === range ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
+                        trendRange === range ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
                       }`}
-                      onClick={() => setPieRange(range)}
+                      onClick={() => setTrendRange(range)}
                     >
                       {range}
                     </button>
@@ -1205,100 +1607,49 @@ const TrendTab = ({
                 </div>
               </div>
             </div>
-            <div style={{ height: "280px" }}>
-              {filteredPieData.length === 0 ? (
-                <div className={`flex h-full items-center justify-center text-sm ${currentTheme.colors.textLight}`}>
-                  暂无数据
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
-                  <PieChart>
-                    <Pie
-                      data={filteredPieData}
-                      dataKey="value"
-                      cx="50%"
-                      cy="45%"
-                      innerRadius={40}
-                      outerRadius={60}
-                      label={({ cx, cy, midAngle, outerRadius, percent, name }) => {
-                        const RADIAN = Math.PI / 180;
-                        const midRadius = outerRadius + 20;
-                        const horizontalOffset = 15;
-                        const midX = cx + midRadius * Math.cos(-midAngle * RADIAN);
-                        const midY = cy + midRadius * Math.sin(-midAngle * RADIAN);
-                        const isRight = midX > cx;
-                        const textX = midX + (isRight ? horizontalOffset : -horizontalOffset);
-                        const textY = midY;
-                        const elbowX = textX;
-                        const elbowY = midY;
-                        const startX = cx + outerRadius * Math.cos(-midAngle * RADIAN);
-                        const startY = cy + outerRadius * Math.sin(-midAngle * RADIAN);
-                        const percentValue = (percent * 100).toFixed(0);
-                        const textAnchor = isRight ? "start" : "end";
-
-                        return (
-                          <g>
-                            <path
-                              d={`M${startX},${startY} L${midX},${midY} L${elbowX},${elbowY}`}
-                              stroke={currentTheme.name === 'light' ? '#9ca3af' : '#9ca3af'}
-                              fill="none"
-                              strokeWidth={1.5}
-                            />
-                            <text
-                              x={textX}
-                              y={textY}
-                              fill={currentTheme.name === 'light' ? '#9ca3af' : '#9ca3af'}
-                              fontSize={14}
-                              fontWeight="500"
-                              textAnchor={textAnchor}
-                              dominantBaseline="middle"
-                            >
-                              {`${name} ${percentValue}%`}
-                            </text>
-                          </g>
-                        );
-                      }}
-                      labelLine={false}
-                    >
-                      {filteredPieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={currentTheme.colors.pie[entry.name] || "#818cf8"} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      margin={{ top: 20 }}
-                      wrapperStyle={{ marginTop: "12px" }}
-                      formatter={(value) => <span style={{ color: currentTheme.name === 'light' ? '#334155' : '#9ca3af' }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
+                <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
+                  {selectedMetrics[0] && (
+                    <>
+                      <defs>
+                        <linearGradient id={`gradient-${selectedMetrics[0]}-${currentTheme.name}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.8} />
+                          <stop offset="95%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.1} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey="cumulative"
+                        stroke={metricsConfig.find(m => m.key === selectedMetrics[0]).color}
+                        fillOpacity={1}
+                        fill={`url(#gradient-${selectedMetrics[0]}-${currentTheme.name})`}
+                        name={metricsConfig.find(m => m.key === selectedMetrics[0]).name}
+                      />
+                    </>
+                  )}
+                  <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563'} />
+                  <XAxis 
+                    dataKey="time" 
+                    tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                    axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                    tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                    axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                    tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
+                    domain={[0, 'dataMax + 1']}
+                  />
+                  <Tooltip contentStyle={{ backgroundColor: currentTheme.colors.card, borderColor: currentTheme.colors.border, color: currentTheme.colors.text }} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </div>
-          <div
-        ref={scrollContainerRef}
-        className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-        <div className="flex">
-          {trendCards.map((card, idx) => renderTrendCard(card.title, card.unit, card.chartData, card.range, card.setRange, card.color))}
-        </div>
-      </div>
-      <div className="flex justify-center gap-2 mt-2">
-        {trendCards.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => scrollToCard(idx)}
-            className={`h-2 rounded-full transition-all ${activeIndex === idx ? 'w-4' : 'w-2'}`}
-            style={{
-              backgroundColor: activeIndex === idx ? accentColor : currentTheme.colors.borderLight.replace('border-', '')
-            }}
-          />
-        ))}
-      </div>
+
+
+
+
         </>
       ) : (
         <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-8 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} flex flex-col items-center justify-center`}>
@@ -1365,7 +1716,9 @@ const SettingsTab = ({
   setAccentColor,
   currentTheme,
   currentUiStyle,
-  getContrastColor
+  getContrastColor,
+  sleepData,
+  setSleepData
 }) => {
   // 通用处理函数
   const handleLimitChange = (value, setter, min, max, defaultValue) => {
@@ -1418,7 +1771,7 @@ const SettingsTab = ({
           <div className="flex items-center justify-between">
             <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
             <button
-              className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-100`}
+              className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:${currentTheme.colors.borderLight}`}
               onClick={() => setIsEditingProfile((v) => !v)}
             >
               {isEditingProfile ? "完成" : "编辑"}
@@ -1429,7 +1782,7 @@ const SettingsTab = ({
               <img
                 src={profile.avatar}
                 alt="avatar"
-                className="h-12 w-12 rounded-full border border-slate-200 object-cover"
+                className={`h-12 w-12 rounded-full border ${currentTheme.colors.border} object-cover`}
               />
             ) : (
               <div 
@@ -1448,7 +1801,7 @@ const SettingsTab = ({
             </div>
           </div>
           <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+          <div className="mt-2 flex flex-wrap gap-2 text-xs ${currentTheme.colors.textLight}">
             {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
             {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
             {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
@@ -1456,7 +1809,7 @@ const SettingsTab = ({
           </div>
 
           {isEditingProfile && (
-            <div className="mt-4 space-y-3 rounded-xl bg-slate-50 p-3">
+            <div className={`mt-4 space-y-3 rounded-xl ${currentTheme.colors.card} p-3`}>
               <ProfileEditor
                 profile={profile}
                 setProfile={setProfile}
@@ -1702,6 +2055,69 @@ const SettingsTab = ({
                     placeholder="输入颜色代码"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>😴 睡眠设置</h2>
+          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置您的睡眠习惯，获取更精准的咖啡因摄入建议。</p>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常入睡时间</label>
+              <input
+                type="time"
+                value={sleepData.usualBedtime}
+                onChange={(e) => setSleepData(prev => ({ ...prev, usualBedtime: e.target.value }))}
+                className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </div>
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常起床时间</label>
+              <input
+                type="time"
+                value={sleepData.usualWakeup}
+                onChange={(e) => setSleepData(prev => ({ ...prev, usualWakeup: e.target.value }))}
+                className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+              />
+            </div>
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>睡眠质量</label>
+              <div className="grid grid-cols-3 gap-2">
+                {["poor", "fair", "good"].map(quality => (
+                  <button
+                    key={quality}
+                    onClick={() => setSleepData(prev => ({ ...prev, sleepQuality: quality }))}
+                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.cardColor,
+                      color: sleepData.sleepQuality === quality ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    {quality === "poor" ? "较差" : quality === "fair" ? "一般" : "良好"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>咖啡因敏感度</label>
+              <div className="grid grid-cols-3 gap-2">
+                {["low", "medium", "high"].map(sensitivity => (
+                  <button
+                    key={sensitivity}
+                    onClick={() => setSleepData(prev => ({ ...prev, sensitivityToCaffeine: sensitivity }))}
+                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.cardColor,
+                      color: sleepData.sensitivityToCaffeine === sensitivity ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    {sensitivity === "low" ? "低" : sensitivity === "medium" ? "中" : "高"}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -2216,8 +2632,8 @@ const ProfileEditor = ({ profile, setProfile, onAvatarUpload, currentTheme, curr
 const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, currentTheme, currentUiStyle }) => {
   const inputRef = useRef(null);
   const [isIOS, setIsIOS] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-  const DEFAULT_DISPLAY_LIMIT = 3;
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -2225,7 +2641,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
   }, []);
 
   useEffect(() => {
-    setShowAll(false);
+    setCurrentPage(1);
   }, [filterDate]);
 
   const handleContainerClick = () => {
@@ -2238,9 +2654,10 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
   };
 
   const sortedRecords = [...records].sort((a, b) => new Date(b._date) - new Date(a._date));
-  const shouldLimit = !filterDate && !showAll;
-  const displayedRecords = shouldLimit ? sortedRecords.slice(0, DEFAULT_DISPLAY_LIMIT) : sortedRecords;
-  const hasMore = sortedRecords.length > DEFAULT_DISPLAY_LIMIT;
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+  const displayedRecords = sortedRecords.slice(0, endIndex);
+  const hasMore = endIndex < sortedRecords.length;
 
   const baseStyle = {
     appearance: "none",
@@ -2328,7 +2745,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
         <>
           <ul className="space-y-2">
             {displayedRecords.map((r) => (
-              <li key={r.id} className={`${currentUiStyle.cardRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 transition hover:bg-slate-200`}>
+              <li key={r.id} className={`${currentUiStyle.cardRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 transition hover:${currentTheme.colors.borderLight}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`font-medium ${currentTheme.colors.text}`}>
@@ -2360,20 +2777,20 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
               </li>
             ))}
           </ul>
-          {hasMore && shouldLimit && (
+          {hasMore && (
             <button
-              onClick={() => setShowAll(true)}
-              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:${currentTheme.colors.borderLight}`}
             >
-              加载更多 ({sortedRecords.length - DEFAULT_DISPLAY_LIMIT} 条)
+              加载更多 ({sortedRecords.length - endIndex} 条)
             </button>
           )}
-          {!shouldLimit && !filterDate && hasMore && (
+          {currentPage > 1 && (
             <button
-              onClick={() => setShowAll(false)}
-              className={`mt-3 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:bg-slate-200`}
+              onClick={() => setCurrentPage(1)}
+              className={`mt-2 w-full rounded-lg border ${currentTheme.colors.border} ${currentTheme.colors.card} py-2 text-sm ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:${currentTheme.colors.borderLight}`}
             >
-              收起 (显示最近 {DEFAULT_DISPLAY_LIMIT} 条)
+              收起 (显示最近 ${PAGE_SIZE} 条)
             </button>
           )}
         </>
@@ -2413,12 +2830,38 @@ const PickerModal = ({
   accentColor
 }) => {
   const [isIOS, setIsIOS] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [currentY, setCurrentY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   
   // 检测设备类型
   useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(isIOSDevice);
   }, []);
+
+  // 键盘事件处理和滚动穿透修复
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'Enter') {
+        onConfirm();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      // 禁止背景滚动
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      // 恢复背景滚动
+      document.body.style.overflow = '';
+    };
+  }, [open, onClose, onConfirm]);
 
   if (!open) return null;
 
@@ -2476,9 +2919,60 @@ const PickerModal = ({
     }
   };
 
+  // 拖动关闭功能
+  const handleMouseDown = (e) => {
+    setStartY(e.clientY);
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    setCurrentY(e.clientY - startY);
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isDragging) return;
+    if (currentY > 100) {
+      onClose();
+    }
+    setIsDragging(false);
+    setCurrentY(0);
+  };
+
+  // 触摸事件处理
+  const handleTouchStart = (e) => {
+    setStartY(e.touches[0].clientY);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    setCurrentY(e.touches[0].clientY - startY);
+  };
+
+  const handleTouchEnd = (e) => {
+    if (!isDragging) return;
+    if (currentY > 100) {
+      onClose();
+    }
+    setIsDragging(false);
+    setCurrentY(0);
+  };
+
   return (
     <div className="fixed inset-0 z-20 flex items-end bg-black/45" onClick={onClose}>
-      <div className={`w-full ${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 shadow-2xl space-y-8 transition-colors duration-300 max-h-[80vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className={`w-full ${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 shadow-2xl space-y-8 transition-colors duration-300 max-h-[80vh] overflow-y-auto`} 
+        onClick={(e) => e.stopPropagation()}
+        style={{ transform: currentY > 0 ? `translateY(${currentY}px)` : 'none' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <h3 className={`text-base font-semibold ${currentTheme.colors.text}`}>选择饮品参数</h3>
 
         <div>
@@ -2488,7 +2982,7 @@ const PickerModal = ({
               <button
                 key={t}
                 onClick={() => onTypeChange(t)}
-                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                 style={{
                   backgroundColor: type === t ? accentColor : currentTheme.colors.cardColor,
                   color: type === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2502,7 +2996,7 @@ const PickerModal = ({
               <button
                 key="custom"
                 onClick={() => onTypeChange("自定义")}
-                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                 style={{
                   backgroundColor: type === "自定义" ? accentColor : currentTheme.colors.cardColor,
                   color: type === "自定义" ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2521,7 +3015,7 @@ const PickerModal = ({
                   <button
                     key={drink.id}
                     onClick={() => onTypeChange(drink.name)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: type === drink.name ? accentColor : currentTheme.colors.cardColor,
                   color: type === drink.name ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2545,7 +3039,7 @@ const PickerModal = ({
                   <button
                     key={s}
                     onClick={() => onCupSizeChange(s)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: cupSize === s ? accentColor : currentTheme.colors.cardColor,
                   color: cupSize === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2564,7 +3058,7 @@ const PickerModal = ({
                   <button
                     key={i}
                     onClick={() => onIceChange(i)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: ice === i ? accentColor : currentTheme.colors.cardColor,
                   color: ice === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2583,7 +3077,7 @@ const PickerModal = ({
                   <button
                     key={s}
                     onClick={() => onSugarChange(s)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: sugar === s ? accentColor : currentTheme.colors.cardColor,
                   color: sugar === s ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2607,7 +3101,7 @@ const PickerModal = ({
                   <button
                     key={i}
                     onClick={() => onAlcoholIceChange(i)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: alcoholIce === i ? accentColor : currentTheme.colors.cardColor,
                   color: alcoholIce === i ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2642,7 +3136,7 @@ const PickerModal = ({
                   <button
                     key={t}
                     onClick={() => onWaterTempChange(t)}
-                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                    className={`flex-1 py-2 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                     style={{
                   backgroundColor: waterTemp === t ? accentColor : currentTheme.colors.cardColor,
                   color: waterTemp === t ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
@@ -2686,7 +3180,7 @@ const PickerModal = ({
                       }
                     }
                   }}
-                  className={`py-2 px-3 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border}`}
+                  className={`py-2 px-3 ${currentUiStyle.buttonRadius} border text-sm transition ${currentTheme.colors.border} hover:${currentTheme.colors.borderLight} focus:outline-none focus:ring-2 focus:ring-offset-2`}
                   style={{
                     backgroundColor: selectedIngredients.some(item => item.id === ingredient.id) ? accentColor : currentTheme.colors.card.replace('bg-', ''),
                     color: selectedIngredients.some(item => item.id === ingredient.id) ? getContrastColor(accentColor) : currentTheme.colors.textSecondary.replace('text-', ''),
@@ -2740,12 +3234,12 @@ const PickerModal = ({
         )}
 
         <div className="flex gap-3 pt-4">
-          <button onClick={onClose} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} ${currentTheme.colors.textLight} active:scale-95 transition hover:bg-slate-200`}>
+          <button onClick={onClose} className={`flex-1 py-2 ${currentUiStyle.buttonRadius} ${currentTheme.colors.border} ${currentTheme.colors.card} ${currentTheme.colors.textLight} active:scale-95 transition hover:${currentTheme.colors.borderLight}`}>
             取消
           </button>
           <button 
             onClick={onConfirm} 
-            className={`flex-1 py-2 ${currentUiStyle.buttonRadius} active:scale-95 transition hover:bg-opacity-90`}
+            className={`flex-1 py-2 ${currentUiStyle.buttonRadius} active:scale-95 transition hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2`}
             style={{
               backgroundColor: accentColor,
               color: getContrastColor(accentColor)
@@ -2759,12 +3253,58 @@ const PickerModal = ({
   );
 };
 
+// 启动屏幕组件
+const SplashScreen = ({ onAnimationComplete }) => {
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    // 先显示1秒，然后开始动画
+    const timer1 = setTimeout(() => {
+      setAnimate(true);
+    }, 1000);
+
+    // 动画结束后调用回调
+    const timer2 = setTimeout(() => {
+      onAnimationComplete();
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [onAnimationComplete]);
+
+  return (
+    <div 
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900 transition-all duration-1000 ease-in-out ${animate ? 'translate-y-[-100%]' : ''}`}
+      style={{
+        transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
+      <div 
+        className={`relative transition-all duration-1000 ease-in-out ${animate ? 'scale-50' : ''}`}
+        style={{
+          transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1), color 1s ease-in-out'
+        }}
+      >
+        <h1 
+          style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} 
+          className={`text-4xl ${animate ? 'text-white' : 'text-[#b08968]'}`}
+        >
+          MyDrink
+        </h1>
+      </div>
+    </div>
+  );
+};
+
 // ==================== 主组件 ====================
 function App() {
   const [activeTab, setActiveTab] = useState("记录");
   const [trendRange, setTrendRange] = useState("今日");
   const [editingId, setEditingId] = useState(null);
   const [filterDate, setFilterDate] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     try {
       const saved = localStorage.getItem(THEME_KEY);
@@ -2880,6 +3420,20 @@ function App() {
     }
   });
 
+  // 睡眠数据
+  const [sleepData, setSleepData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SLEEP_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      usualBedtime: "23:00",
+      usualWakeup: "07:00",
+      sleepQuality: "fair",
+      sensitivityToCaffeine: "medium"
+    };
+  });
+
   // 获取当前主题配置
   const currentTheme = THEMES[theme];
   const currentUiStyle = UI_STYLES[uiStyle];
@@ -2971,9 +3525,9 @@ function App() {
         water: r.water ?? 0,
         alcohol: r.alcohol ?? 0,
         caffeine: r.caffeine ?? 0,
-        sugar_g: r.sugar_g ?? 0,
-        calories_kcal: r.calories_kcal ?? 0,
-        fat_g: r.fat_g ?? 0
+        sugar_g: r.sugar_g ?? r.sugar ?? 0,
+        calories_kcal: r.calories_kcal ?? r.calories ?? 0,
+        fat_g: r.fat_g ?? r.fat ?? 0
       };
     }),
     [records]
@@ -3073,6 +3627,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(INGREDIENTS_KEY, JSON.stringify(ingredients));
   }, [ingredients]);
+
+  useEffect(() => {
+    localStorage.setItem(SLEEP_KEY, JSON.stringify(sleepData));
+  }, [sleepData]);
   
   // 保存主题设置
   useEffect(() => {
@@ -3443,9 +4001,14 @@ function App() {
     setIngredients(prev => prev.filter(ingredient => ingredient.id !== id));
   };
 
+  const handleSplashAnimationComplete = () => {
+    setIsLoading(false);
+  };
+
   return (
     <div className={`mx-auto flex min-h-screen w-full max-w-md flex-col transition-colors duration-300 ${currentTheme.colors.background} ${theme === 'dark' ? 'dark' : ''}`}>
-      <header className={`sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card} py-4`}>
+      {isLoading && <SplashScreen onAnimationComplete={handleSplashAnimationComplete} />}
+      <header className={`sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card} py-4 rounded-b-3xl`}>
         <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 'bold' }} className={`text-2xl transition-colors duration-300 ${currentTheme.colors.text} text-center`}>
           MyDrink
         </h1>
@@ -3481,6 +4044,7 @@ function App() {
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
             accentColor={accentColor}
+            sleepData={sleepData}
           />
         )}
 
@@ -3488,9 +4052,6 @@ function App() {
           <TrendTab
             normalizedRecords={normalizedRecords}
             today={today}
-            trendRange={trendRange}
-            setTrendRange={setTrendRange}
-            chartData={chartData}
             records={displayedRecords}
             filterDate={filterDate}
             setFilterDate={setFilterDate}
@@ -3546,15 +4107,17 @@ function App() {
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
             getContrastColor={getContrastColor}
+            sleepData={sleepData}
+            setSleepData={setSleepData}
           />
         )}
       </main>
 
-      <nav className={`fixed bottom-0 left-0 right-0 mx-auto flex w-full max-w-md backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 mx-auto flex w-full max-w-md backdrop-blur transition-colors duration-300 ${currentTheme.colors.border} ${currentTheme.colors.card} ${currentUiStyle.cardRadius.replace('rounded-', 'rounded-t-')}`}>
         {TABS.map((tab) => (
           <button
               key={tab}
-              className={`flex-1 py-2 text-xs font-medium transition-colors duration-300 ${
+              className={`flex-1 py-3 text-xs font-medium transition-colors duration-300 min-h-[44px] ${
                 activeTab === tab ? `text-[${accentColor}]` : currentTheme.colors.textLight
               }`}
               onClick={() => setActiveTab(tab)}
