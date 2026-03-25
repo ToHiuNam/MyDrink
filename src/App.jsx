@@ -2272,6 +2272,7 @@ const SettingsTab = ({
                   value={sleepData.usualBedtime}
                   onChange={(e) => setSleepData(prev => ({ ...prev, usualBedtime: e.target.value }))}
                   className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                  style={{ boxSizing: "border-box", width: "100%", minWidth: 0 }}
                 />
               </div>
               <div>
@@ -2281,6 +2282,7 @@ const SettingsTab = ({
                   value={sleepData.usualWakeup}
                   onChange={(e) => setSleepData(prev => ({ ...prev, usualWakeup: e.target.value }))}
                   className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                  style={{ boxSizing: "border-box", width: "100%", minWidth: 0 }}
                 />
               </div>
               <div>
