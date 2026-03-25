@@ -739,8 +739,8 @@ const HealthAssistant = ({
             <div className="flex items-start gap-3">
               <span className="text-blue-500 text-xl">💧</span>
               <div className="flex-1">
-                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>补水提醒</p>
-                <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{waterReminder}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-50">补水提醒</p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{waterReminder}</p>
               </div>
             </div>
           </div>
@@ -762,19 +762,19 @@ const HealthAssistant = ({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-orange-500">☕️</span>
-                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>咖啡因状态</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-50">咖啡因状态</p>
               </div>
-              <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{caffeineInfo.message}</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{caffeineInfo.message}</p>
               {caffeineInfo.advice && (
                 <div className={`mt-2 p-3 rounded-lg border ${caffeineInfo.level === 'warning' ? currentTheme.colors.warningBorder : currentTheme.colors.infoBorder} ${caffeineInfo.level === 'warning' ? currentTheme.colors.warning : currentTheme.colors.info} transition-all duration-300 hover:shadow-md animate-slideIn`}>
-                  <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{caffeineInfo.advice.message}</p>
-                  <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>{caffeineInfo.advice.action}</p>
-                  {caffeineInfo.advice.alternativeDrinks && (
-                    <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>替代饮品: {caffeineInfo.advice.alternativeDrinks.join('、')}</p>
-                  )}
-                  {caffeineInfo.advice.idealIntake && (
-                    <p className={`mt-1 text-xs ${currentTheme.colors.textSecondary}`}>建议摄入量: {caffeineInfo.advice.idealIntake}mg</p>
-                  )}
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-50">{caffeineInfo.advice.message}</p>
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{caffeineInfo.advice.action}</p>
+                {caffeineInfo.advice.alternativeDrinks && (
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">替代饮品: {caffeineInfo.advice.alternativeDrinks.join('、')}</p>
+                )}
+                {caffeineInfo.advice.idealIntake && (
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">建议摄入量: {caffeineInfo.advice.idealIntake}mg</p>
+                )}
                 </div>
               )}
             </div>
@@ -787,8 +787,8 @@ const HealthAssistant = ({
             <div className="flex items-start gap-3">
               <span className="text-amber-500 text-xl">🍺</span>
               <div className="flex-1">
-                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>酒精代谢提醒</p>
-                <p className={`mt-1 text-sm ${currentTheme.colors.textSecondary}`}>{alcoholMessage}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-50">酒精代谢提醒</p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{alcoholMessage}</p>
               </div>
             </div>
           </div>
@@ -985,10 +985,6 @@ const RecordTab = ({
   return (
     <section className="relative space-y-4">
       <div className="relative">
-        {/* 左侧渐隐效果 */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 dark:from-gray-800"></div>
-        {/* 右侧渐隐效果 */}
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 dark:from-gray-800"></div>
         <div
           ref={scrollContainerRef}
           className="overflow-x-auto snap-x snap-mandatory scroll-smooth"
@@ -1003,12 +999,25 @@ const RecordTab = ({
               {/* 网格布局的指标卡片 */}
               <div className="grid grid-cols-2 gap-4">
                 {/* 水分卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-blue-50 to-blue-100 p-3 ring-1 ring-blue-200 transition-all duration-300 hover:shadow-md dark:from-blue-900/30 dark:to-blue-800/20 dark:ring-blue-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-blue-50 to-blue-100 
+                  dark:from-blue-950 dark:to-blue-900 
+                  p-3 ring-1 ring-blue-200 dark:ring-blue-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>💧 水分</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalWater} ml</p>
-                      <p className={`mt-1 text-xs ${exceedWaterTarget ? "text-green-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        💧 水分
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalWater} ml
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedWaterTarget ? "text-green-600 dark:text-green-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         目标 {dailyWaterTarget} ml
                       </p>
                     </div>
@@ -1016,15 +1025,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalWater / dailyWaterTarget) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-blue-500 dark:bg-blue-400"
                         style={{ 
-                          width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%`,
-                          backgroundColor: '#3b82f6'
+                          width: `${Math.min(100, (totalWater / dailyWaterTarget) * 100)}%`
                         }}
                       />
                     </div>
@@ -1032,12 +1042,25 @@ const RecordTab = ({
                 </div>
                 
                 {/* 咖啡因卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-orange-50 to-orange-100 p-3 ring-1 ring-orange-200 transition-all duration-300 hover:shadow-md dark:from-orange-900/30 dark:to-orange-800/20 dark:ring-orange-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-orange-50 to-orange-100 
+                  dark:from-orange-950 dark:to-orange-900 
+                  p-3 ring-1 ring-orange-200 dark:ring-orange-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>☕️ 咖啡因</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalCaffeine} mg</p>
-                      <p className={`mt-1 text-xs ${exceedLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        ☕️ 咖啡因
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalCaffeine} mg
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedLimit ? "text-rose-600 dark:text-rose-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         上限 {dailyLimit} mg
                       </p>
                     </div>
@@ -1045,15 +1068,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalCaffeine / dailyLimit) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalCaffeine / dailyLimit) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-orange-500 dark:bg-orange-400"
                         style={{ 
-                          width: `${Math.min(100, (totalCaffeine / dailyLimit) * 100)}%`,
-                          backgroundColor: '#f97316'
+                          width: `${Math.min(100, (totalCaffeine / dailyLimit) * 100)}%`
                         }}
                       />
                     </div>
@@ -1061,12 +1085,25 @@ const RecordTab = ({
                 </div>
                 
                 {/* 糖分卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-pink-50 to-pink-100 p-3 ring-1 ring-pink-200 transition-all duration-300 hover:shadow-md dark:from-pink-900/30 dark:to-pink-800/20 dark:ring-pink-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-pink-50 to-pink-100 
+                  dark:from-pink-950 dark:to-pink-900 
+                  p-3 ring-1 ring-pink-200 dark:ring-pink-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🍬 糖分</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalSugar} g</p>
-                      <p className={`mt-1 text-xs ${exceedSugarLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        🍬 糖分
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalSugar} g
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedSugarLimit ? "text-rose-600 dark:text-rose-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         上限 {dailySugarLimit} g
                       </p>
                     </div>
@@ -1074,15 +1111,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalSugar / dailySugarLimit) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalSugar / dailySugarLimit) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-pink-500 dark:bg-pink-400"
                         style={{ 
-                          width: `${Math.min(100, (totalSugar / dailySugarLimit) * 100)}%`,
-                          backgroundColor: '#ec489a'
+                          width: `${Math.min(100, (totalSugar / dailySugarLimit) * 100)}%`
                         }}
                       />
                     </div>
@@ -1090,12 +1128,25 @@ const RecordTab = ({
                 </div>
                 
                 {/* 酒精卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-amber-50 to-amber-100 p-3 ring-1 ring-amber-200 transition-all duration-300 hover:shadow-md dark:from-amber-900/30 dark:to-amber-800/20 dark:ring-amber-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-amber-50 to-amber-100 
+                  dark:from-amber-950 dark:to-amber-900 
+                  p-3 ring-1 ring-amber-200 dark:ring-amber-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🍺 酒精</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalAlcohol} mg</p>
-                      <p className={`mt-1 text-xs ${exceedAlcoholLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        🍺 酒精
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalAlcohol} mg
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedAlcoholLimit ? "text-rose-600 dark:text-rose-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         上限 {dailyAlcoholLimit} mg
                       </p>
                     </div>
@@ -1103,15 +1154,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalAlcohol / dailyAlcoholLimit) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalAlcohol / dailyAlcoholLimit) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-amber-500 dark:bg-amber-400"
                         style={{ 
-                          width: `${Math.min(100, (totalAlcohol / dailyAlcoholLimit) * 100)}%`,
-                          backgroundColor: '#f59e0b'
+                          width: `${Math.min(100, (totalAlcohol / dailyAlcoholLimit) * 100)}%`
                         }}
                       />
                     </div>
@@ -1119,12 +1171,25 @@ const RecordTab = ({
                 </div>
                 
                 {/* 热量卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-red-50 to-red-100 p-3 ring-1 ring-red-200 transition-all duration-300 hover:shadow-md dark:from-red-900/30 dark:to-red-800/20 dark:ring-red-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-red-50 to-red-100 
+                  dark:from-red-950 dark:to-red-900 
+                  p-3 ring-1 ring-red-200 dark:ring-red-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🔥 热量</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalCalories} kcal</p>
-                      <p className={`mt-1 text-xs ${exceedCaloriesLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        🔥 热量
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalCalories} kcal
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedCaloriesLimit ? "text-rose-600 dark:text-rose-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         上限 {dailyCaloriesLimit} kcal
                       </p>
                     </div>
@@ -1132,15 +1197,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalCalories / dailyCaloriesLimit) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalCalories / dailyCaloriesLimit) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-red-500 dark:bg-red-400"
                         style={{ 
-                          width: `${Math.min(100, (totalCalories / dailyCaloriesLimit) * 100)}%`,
-                          backgroundColor: '#ef4444'
+                          width: `${Math.min(100, (totalCalories / dailyCaloriesLimit) * 100)}%`
                         }}
                       />
                     </div>
@@ -1148,12 +1214,25 @@ const RecordTab = ({
                 </div>
                 
                 {/* 脂肪卡片 */}
-                <div className={`${currentUiStyle.cardRadius} bg-gradient-to-br from-green-50 to-green-100 p-3 ring-1 ring-green-200 transition-all duration-300 hover:shadow-md dark:from-green-900/30 dark:to-green-800/20 dark:ring-green-800/50`}>
+                <div className={`
+                  ${currentUiStyle.cardRadius} 
+                  bg-gradient-to-br from-green-50 to-green-100 
+                  dark:from-green-950 dark:to-green-900 
+                  p-3 ring-1 ring-green-200 dark:ring-green-800/80 
+                  transition-all duration-300 hover:shadow-md
+                `}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className={`text-sm ${currentTheme.colors.textLight}`}>🥑 脂肪</p>
-                      <p className={`mt-1 text-2xl font-bold ${currentTheme.colors.text}`}>{totalFat} g</p>
-                      <p className={`mt-1 text-xs ${exceedFatLimit ? "text-rose-600" : currentTheme.colors.textLight}`}>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        🥑 脂肪
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                        {totalFat} g
+                      </p>
+                      <p className={`
+                        mt-1 text-xs
+                        ${exceedFatLimit ? "text-rose-600 dark:text-rose-400" : "text-gray-600 dark:text-gray-400"}
+                      `}>
                         上限 {dailyFatLimit} g
                       </p>
                     </div>
@@ -1161,15 +1240,16 @@ const RecordTab = ({
                   </div>
                   <div className="mt-2">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className={currentTheme.colors.textSecondary}>进度</span>
-                      <span className={currentTheme.colors.textSecondary}>{Math.min(100, Math.floor((totalFat / dailyFatLimit) * 100))}%</span>
+                      <span className="text-gray-600 dark:text-gray-400">进度</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {Math.min(100, Math.floor((totalFat / dailyFatLimit) * 100))}%
+                      </span>
                     </div>
-                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: currentTheme.colors.borderColor }}>
+                    <div className="w-full rounded-full h-1.5 bg-gray-200 dark:bg-gray-700">
                       <div
-                        className="h-1.5 rounded-full transition-all duration-300"
+                        className="h-1.5 rounded-full transition-all duration-300 bg-green-500 dark:bg-green-400"
                         style={{ 
-                          width: `${Math.min(100, (totalFat / dailyFatLimit) * 100)}%`,
-                          backgroundColor: '#10b981'
+                          width: `${Math.min(100, (totalFat / dailyFatLimit) * 100)}%`
                         }}
                       />
                     </div>
@@ -1243,7 +1323,7 @@ const RecordTab = ({
 };
 
 // 迷你环形进度条组件
-const MiniCircularProgress = ({ value, max, size = 40, strokeWidth = 4, color = '#3b82f6' }) => {
+const MiniCircularProgress = ({ value, max, size = 40, strokeWidth = 4, color = '#3b82f6', textColor = '#1e293b' }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const progress = (value / max) * 100;
@@ -1282,7 +1362,7 @@ const MiniCircularProgress = ({ value, max, size = 40, strokeWidth = 4, color = 
         transform: 'translate(-50%, -50%)',
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '8px', fontWeight: 'bold' }}>{Math.round((progress))}%</div>
+        <div style={{ fontSize: '8px', fontWeight: 'bold', color: textColor }}>{Math.round((progress))}%</div>
       </div>
     </div>
   );
@@ -1508,7 +1588,7 @@ const TrendTab = ({
                 backgroundColor: cell.isCurrentMonth && cell.count > 0
                   ? getBgColorStyle(cell.count)
                   : currentTheme.colors.card,
-                color: cell.isCurrentMonth ? currentTheme.colors.text : currentTheme.colors.textLight,
+                color: cell.isCurrentMonth ? currentTheme.colors.textColor : currentTheme.colors.textLightColor,
                 border: `1px solid ${currentTheme.colors.borderColor}`,
                 boxShadow: 'hover: 0 2px 4px rgba(0,0,0,0.1)'
               }}
@@ -1556,6 +1636,7 @@ const TrendTab = ({
                         value={value}
                         max={goal}
                         color={isExceeded ? '#ef4444' : metric.color}
+                        textColor={currentTheme.colors.textColor}
                       />
                       <p className={`mt-2 text-xs ${currentTheme.colors.textSecondary}`}>{metric.name}</p>
                       <p className={`text-sm font-medium ${isExceeded ? 'text-rose-500' : currentTheme.colors.text}`}>
@@ -1718,7 +1799,9 @@ const SettingsTab = ({
   currentUiStyle,
   getContrastColor,
   sleepData,
-  setSleepData
+  setSleepData,
+  settingsView,
+  setSettingsView
 }) => {
   // 通用处理函数
   const handleLimitChange = (value, setter, min, max, defaultValue) => {
@@ -1765,393 +1848,486 @@ const SettingsTab = ({
   };
 
   try {
-    return (
-      <section className="space-y-4">
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-          <div className="flex items-center justify-between">
-            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
-            <button
-              className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:${currentTheme.colors.borderLight}`}
-              onClick={() => setIsEditingProfile((v) => !v)}
-            >
-              {isEditingProfile ? "完成" : "编辑"}
-            </button>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            {String(profile.avatar || "").startsWith("data:image") ? (
-              <img
-                src={profile.avatar}
-                alt="avatar"
-                className={`h-12 w-12 rounded-full border ${currentTheme.colors.border} object-cover`}
-              />
-            ) : (
-              <div 
-                className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold"
-                style={{
-                  backgroundColor: `${accentColor}40`,
-                  color: getContrastColor(accentColor)
-                }}
+    // 个人信息页
+    if (settingsView === null) {
+      return (
+        <section className="space-y-4">
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <div className="flex items-center justify-between">
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>👤 个人信息</h2>
+              <button
+                className={`rounded-md border ${currentTheme.colors.border} px-2 py-1 text-xs ${currentTheme.colors.textSecondary} transition-colors duration-300 hover:${currentTheme.colors.borderLight}`}
+                onClick={() => setIsEditingProfile((v) => !v)}
               >
-                {profile.avatar || "Y"}
+                {isEditingProfile ? "完成" : "编辑"}
+              </button>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              {String(profile.avatar || "").startsWith("data:image") ? (
+                <img
+                  src={profile.avatar}
+                  alt="avatar"
+                  className={`h-12 w-12 rounded-full border ${currentTheme.colors.border} object-cover`}
+                />
+              ) : (
+                <div 
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold"
+                  style={{
+                    backgroundColor: `${accentColor}40`,
+                    color: getContrastColor(accentColor)
+                  }}
+                >
+                  {profile.avatar || "Y"}
+                </div>
+              )}
+              <div>
+                <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{profile.nickname || "未命名用户"}</p>
+                {profile.bio ? <p className={`text-xs ${currentTheme.colors.textLight}`}>{profile.bio}</p> : null}
+              </div>
+            </div>
+            <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs ${currentTheme.colors.textLight}">
+              {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
+              {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
+              {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
+              {profile.gender && profile.gender !== "未设置" ? <span className={currentTheme.colors.textLight}>性别：{profile.gender}</span> : null}
+            </div>
+
+            {isEditingProfile && (
+              <div className={`mt-4 space-y-3 rounded-xl ${currentTheme.colors.card} p-3`}>
+                <ProfileEditor
+                  profile={profile}
+                  setProfile={setProfile}
+                  onAvatarUpload={onAvatarUpload}
+                  currentTheme={currentTheme}
+                  currentUiStyle={currentUiStyle}
+                  accentColor={accentColor}
+                  getContrastColor={getContrastColor}
+                />
+                <div>
+                  <label className={`block text-xs ${currentTheme.colors.textSecondary} mb-1`}>性别</label>
+                  <div className="flex gap-2">
+                    {genderOptions.map(opt => (
+                      <button
+                      key={opt}
+                      onClick={() => handleGenderChange(opt)}
+                      className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                      style={{
+                        backgroundColor: profile.gender === opt ? accentColor : currentTheme.colors.cardColor,
+                        color: profile.gender === opt ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                        borderColor: profile.gender === opt ? accentColor : currentTheme.colors.borderColor
+                      }}
+                    >
+                      {opt}
+                    </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
-            <div>
-              <p className={`text-sm font-medium ${currentTheme.colors.text}`}>{profile.nickname || "未命名用户"}</p>
-              {profile.bio ? <p className={`text-xs ${currentTheme.colors.textLight}`}>{profile.bio}</p> : null}
+
+            <div className="mt-4 grid grid-cols-5 gap-2 text-center">
+              <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+                <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{recordsCount}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>总杯数</p>
+              </div>
+              <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+                <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{coffeeCount}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>咖啡</p>
+              </div>
+              <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+                <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{milkTeaCount}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>奶茶</p>
+              </div>
+              <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+                <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{alcoholCount}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>酒</p>
+              </div>
+              <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
+                <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{waterCount}</p>
+                <p className={`text-xs ${currentTheme.colors.textLight}`}>水</p>
+              </div>
             </div>
           </div>
-          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>已连续记录 {streakDays} 天</p>
-          <div className="mt-2 flex flex-wrap gap-2 text-xs ${currentTheme.colors.textLight}">
-            {Number(profile.age) > 0 ? <span className={currentTheme.colors.textLight}>年龄：{profile.age}</span> : null}
-            {Number(profile.weight) > 0 ? <span className={currentTheme.colors.textLight}>体重：{profile.weight} kg</span> : null}
-            {Number(profile.bloodSugar) > 0 ? <span className={currentTheme.colors.textLight}>血糖：{profile.bloodSugar} mmol/L</span> : null}
-            {profile.gender && profile.gender !== "未设置" ? <span className={currentTheme.colors.textLight}>性别：{profile.gender}</span> : null}
+
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+            <CustomDrinkManager
+            customDrinks={customDrinks}
+            onAdd={onAddCustomDrink}
+            onEdit={onEditCustomDrink}
+            onDelete={onDeleteCustomDrink}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
+            accentColor={accentColor}
+          />
           </div>
 
-          {isEditingProfile && (
-            <div className={`mt-4 space-y-3 rounded-xl ${currentTheme.colors.card} p-3`}>
-              <ProfileEditor
-                profile={profile}
-                setProfile={setProfile}
-                onAvatarUpload={onAvatarUpload}
-                currentTheme={currentTheme}
-                currentUiStyle={currentUiStyle}
-                accentColor={accentColor}
-                getContrastColor={getContrastColor}
-              />
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
+            <IngredientManager
+            ingredients={ingredients}
+            onAdd={onAddIngredient}
+            onEdit={onEditIngredient}
+            onDelete={onDeleteIngredient}
+            currentTheme={currentTheme}
+            currentUiStyle={currentUiStyle}
+            accentColor={accentColor}
+          />
+          </div>
+
+          {/* 设置卡片 */}
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
+            <div className="mt-4">
+              <button 
+                className={`${currentTheme.colors.card} p-3 rounded-lg ${currentTheme.colors.border} w-full text-left transition-all duration-300 hover:${currentTheme.colors.borderLight}`}
+                onClick={() => setSettingsView('personal')}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className={`text-sm font-medium ${currentTheme.colors.text}`}>每日摄入设置</h3>
+                    <p className={`mt-1 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
+                  </div>
+                  <div className={`text-sm ${currentTheme.colors.textLight}`}>›</div>
+                </div>
+              </button>
+              <button 
+                className={`${currentTheme.colors.card} p-3 rounded-lg ${currentTheme.colors.border} w-full text-left transition-all duration-300 hover:${currentTheme.colors.borderLight}`}
+                onClick={() => setSettingsView('personalization')}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className={`text-sm font-medium ${currentTheme.colors.text}`}>个性化设置</h3>
+                    <p className={`mt-1 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
+                  </div>
+                  <div className={`text-sm ${currentTheme.colors.textLight}`}>›</div>
+                </div>
+              </button>
+              <button 
+                className={`${currentTheme.colors.card} p-3 rounded-lg ${currentTheme.colors.border} w-full text-left transition-all duration-300 hover:${currentTheme.colors.borderLight}`}
+                onClick={() => setSettingsView('sleep')}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className={`text-sm font-medium ${currentTheme.colors.text}`}>睡眠设置</h3>
+                    <p className={`mt-1 text-xs ${currentTheme.colors.textLight}`}>设置您的睡眠习惯，获取更精准的咖啡因摄入建议。</p>
+                  </div>
+                  <div className={`text-sm ${currentTheme.colors.textLight}`}>›</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2">
+            <button
+              className="w-full rounded-xl py-2 text-sm active:scale-95 transition-transform"
+              style={{
+                backgroundColor: `${accentColor}40`,
+                borderColor: accentColor,
+                borderWidth: "1px",
+                borderStyle: "solid",
+                backdropFilter: "blur(4px)",
+                WebkitBackdropFilter: "blur(4px)",
+                color: getContrastColor(accentColor)
+              }}
+              onClick={onExportCsv}
+            >
+              📤 导出 CSV 记录
+            </button>
+            <button
+              className={`w-full rounded-xl border ${currentTheme.colors.dangerBorder} ${currentTheme.colors.danger} py-2 text-sm text-rose-600 active:scale-95 transition-transform`}
+              onClick={() => {
+                if (window.confirm(`确定要清空所有记录吗？共 ${recordsCount} 条记录，此操作不可恢复。`)) {
+                  onResetAll();
+                }
+              }}
+            >
+              🧹 清空所有记录
+            </button>
+          </div>
+        </section>
+      );
+    }
+
+    // 个人设置页
+    if (settingsView === 'personal') {
+      return (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <button
+              className={`p-2 rounded-full ${currentTheme.colors.card} ${currentTheme.colors.border} transition-colors duration-300`}
+              onClick={() => setSettingsView(null)}
+            >
+              ←
+            </button>
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
+          </div>
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日咖啡因上限（mg）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailyLimit === 0 ? "" : dailyLimit}
+                  onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailyLimitBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日酒精上限（mg）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
+                  onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailyAlcoholLimitBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日喝水目标（ml）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
+                  onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailyWaterTargetBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日糖分上限（g）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailySugarLimit === 0 ? "" : dailySugarLimit}
+                  onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailySugarLimitBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日热量上限（kcal）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
+                  onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailyCaloriesLimitBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+              <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
+                每日脂肪上限（g）
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={dailyFatLimit === 0 ? "" : dailyFatLimit}
+                  onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
+                  onBlur={handleDailyFatLimitBlur}
+                  className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </label>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // 个性化设置页
+    if (settingsView === 'personalization') {
+      return (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <button
+              className={`p-2 rounded-full ${currentTheme.colors.card} ${currentTheme.colors.border} transition-colors duration-300`}
+              onClick={() => setSettingsView(null)}
+            >
+              ←
+            </button>
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>🎨 个性化设置</h2>
+          </div>
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
+            
+            <div className="mt-4 space-y-4">
               <div>
-                <label className={`block text-xs ${currentTheme.colors.textSecondary} mb-1`}>性别</label>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>主题模式</label>
                 <div className="flex gap-2">
-                  {genderOptions.map(opt => (
-                    <button
-                    key={opt}
-                    onClick={() => handleGenderChange(opt)}
-                    className={`flex-1 py-2 rounded-lg border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                  <button
+                    onClick={() => setTheme('light')}
+                    className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
                     style={{
-                      backgroundColor: profile.gender === opt ? accentColor : currentTheme.colors.cardColor,
-                      color: profile.gender === opt ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                      borderColor: profile.gender === opt ? accentColor : currentTheme.colors.borderColor
+                      backgroundColor: theme === 'light' ? accentColor : currentTheme.colors.cardColor,
+                      color: theme === 'light' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: theme === 'light' ? accentColor : currentTheme.colors.borderColor
                     }}
                   >
-                    {opt}
+                    浅色模式
                   </button>
+                  <button
+                    onClick={() => setTheme('dark')}
+                    className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: theme === 'dark' ? accentColor : currentTheme.colors.cardColor,
+                      color: theme === 'dark' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: theme === 'dark' ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    深色模式
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>UI风格</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setUiStyle('default')}
+                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: uiStyle === 'default' ? accentColor : currentTheme.colors.cardColor,
+                      color: uiStyle === 'default' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: uiStyle === 'default' ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    默认风格
+                  </button>
+                  <button
+                    onClick={() => setUiStyle('pixel')}
+                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.cardColor,
+                      color: uiStyle === 'pixel' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    像素风格
+                  </button>
+                  <button
+                    onClick={() => setUiStyle('apple')}
+                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                    style={{
+                      backgroundColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.cardColor,
+                      color: uiStyle === 'apple' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                      borderColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.borderColor
+                    }}
+                  >
+                    苹果风格
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>个性化颜色</label>
+                <div className="flex items-center gap-3">
+                  <div className="relative w-10 h-10 overflow-hidden">
+                    <input
+                      type="color"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full cursor-pointer"
+                      style={{ appearance: 'none', border: 'none' }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                      placeholder="输入颜色代码"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // 睡眠设置页
+    if (settingsView === 'sleep') {
+      return (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <button
+              className={`p-2 rounded-full ${currentTheme.colors.card} ${currentTheme.colors.border} transition-colors duration-300`}
+              onClick={() => setSettingsView(null)}
+            >
+              ←
+            </button>
+            <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>😴 睡眠设置</h2>
+          </div>
+          <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
+            <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置您的睡眠习惯，获取更精准的咖啡因摄入建议。</p>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常入睡时间</label>
+                <input
+                  type="time"
+                  value={sleepData.usualBedtime}
+                  onChange={(e) => setSleepData(prev => ({ ...prev, usualBedtime: e.target.value }))}
+                  className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常起床时间</label>
+                <input
+                  type="time"
+                  value={sleepData.usualWakeup}
+                  onChange={(e) => setSleepData(prev => ({ ...prev, usualWakeup: e.target.value }))}
+                  className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
+                />
+              </div>
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>睡眠质量</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {["poor", "fair", "good"].map(quality => (
+                    <button
+                      key={quality}
+                      onClick={() => setSleepData(prev => ({ ...prev, sleepQuality: quality }))}
+                      className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                      style={{
+                        backgroundColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.cardColor,
+                        color: sleepData.sleepQuality === quality ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                        borderColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.borderColor
+                      }}
+                    >
+                      {quality === "poor" ? "较差" : quality === "fair" ? "一般" : "良好"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>咖啡因敏感度</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {["low", "medium", "high"].map(sensitivity => (
+                    <button
+                      key={sensitivity}
+                      onClick={() => setSleepData(prev => ({ ...prev, sensitivityToCaffeine: sensitivity }))}
+                      className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
+                      style={{
+                        backgroundColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.cardColor,
+                        color: sleepData.sensitivityToCaffeine === sensitivity ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
+                        borderColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.borderColor
+                      }}
+                    >
+                      {sensitivity === "low" ? "低" : sensitivity === "medium" ? "中" : "高"}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="mt-4 grid grid-cols-5 gap-2 text-center">
-            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
-              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{recordsCount}</p>
-              <p className={`text-xs ${currentTheme.colors.textLight}`}>总杯数</p>
-            </div>
-            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
-              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{coffeeCount}</p>
-              <p className={`text-xs ${currentTheme.colors.textLight}`}>咖啡</p>
-            </div>
-            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
-              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{milkTeaCount}</p>
-              <p className={`text-xs ${currentTheme.colors.textLight}`}>奶茶</p>
-            </div>
-            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
-              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{alcoholCount}</p>
-              <p className={`text-xs ${currentTheme.colors.textLight}`}>酒</p>
-            </div>
-            <div className={`rounded-lg ${currentTheme.colors.card} py-2 ${currentTheme.colors.border}`}>
-              <p className={`text-base font-semibold ${currentTheme.colors.text}`}>{waterCount}</p>
-              <p className={`text-xs ${currentTheme.colors.textLight}`}>水</p>
-            </div>
           </div>
-        </div>
+        </section>
+      );
+    }
 
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>⚙️ 个人设置</h2>
-          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置每日摄入咖啡因、酒精、糖分、热量、脂肪上限和喝水目标。</p>
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日咖啡因上限（mg）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailyLimit === 0 ? "" : dailyLimit}
-                onChange={(e) => setDailyLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailyLimitBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日酒精上限（mg）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailyAlcoholLimit === 0 ? "" : dailyAlcoholLimit}
-                onChange={(e) => setDailyAlcoholLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailyAlcoholLimitBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日喝水目标（ml）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailyWaterTarget === 0 ? "" : dailyWaterTarget}
-                onChange={(e) => setDailyWaterTarget(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailyWaterTargetBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日糖分上限（g）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailySugarLimit === 0 ? "" : dailySugarLimit}
-                onChange={(e) => setDailySugarLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailySugarLimitBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日热量上限（kcal）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailyCaloriesLimit === 0 ? "" : dailyCaloriesLimit}
-                onChange={(e) => setDailyCaloriesLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailyCaloriesLimitBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-            <label className={`block text-sm ${currentTheme.colors.textSecondary}`}>
-              每日脂肪上限（g）
-              <input
-                type="text"
-                inputMode="numeric"
-                value={dailyFatLimit === 0 ? "" : dailyFatLimit}
-                onChange={(e) => setDailyFatLimit(e.target.value ? Number(e.target.value.replace(/[^\d]/g, '')) : 0)}
-                onBlur={handleDailyFatLimitBlur}
-                className={`mt-1 w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-          <CustomDrinkManager
-          customDrinks={customDrinks}
-          onAdd={onAddCustomDrink}
-          onEdit={onEditCustomDrink}
-          onDelete={onDeleteCustomDrink}
-          currentTheme={currentTheme}
-          currentUiStyle={currentUiStyle}
-          accentColor={accentColor}
-        />
-        </div>
-
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-          <IngredientManager
-          ingredients={ingredients}
-          onAdd={onAddIngredient}
-          onEdit={onEditIngredient}
-          onDelete={onDeleteIngredient}
-          currentTheme={currentTheme}
-          currentUiStyle={currentUiStyle}
-          accentColor={accentColor}
-        />
-        </div>
-
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>🎨 个性化设置</h2>
-          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>自定义应用的外观和风格。</p>
-          
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>主题模式</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setTheme('light')}
-                  className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                  style={{
-                    backgroundColor: theme === 'light' ? accentColor : currentTheme.colors.cardColor,
-                    color: theme === 'light' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                    borderColor: theme === 'light' ? accentColor : currentTheme.colors.borderColor
-                  }}
-                >
-                  浅色模式
-                </button>
-                <button
-                  onClick={() => setTheme('dark')}
-                  className={`flex-1 py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                  style={{
-                    backgroundColor: theme === 'dark' ? accentColor : currentTheme.colors.cardColor,
-                    color: theme === 'dark' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                    borderColor: theme === 'dark' ? accentColor : currentTheme.colors.borderColor
-                  }}
-                >
-                  深色模式
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>UI风格</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setUiStyle('default')}
-                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                  style={{
-                    backgroundColor: uiStyle === 'default' ? accentColor : currentTheme.colors.cardColor,
-                    color: uiStyle === 'default' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                    borderColor: uiStyle === 'default' ? accentColor : currentTheme.colors.borderColor
-                  }}
-                >
-                  默认风格
-                </button>
-                <button
-                  onClick={() => setUiStyle('pixel')}
-                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                  style={{
-                    backgroundColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.cardColor,
-                    color: uiStyle === 'pixel' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                    borderColor: uiStyle === 'pixel' ? accentColor : currentTheme.colors.borderColor
-                  }}
-                >
-                  像素风格
-                </button>
-                <button
-                  onClick={() => setUiStyle('apple')}
-                  className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                  style={{
-                    backgroundColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.cardColor,
-                    color: uiStyle === 'apple' ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                    borderColor: uiStyle === 'apple' ? accentColor : currentTheme.colors.borderColor
-                  }}
-                >
-                  苹果风格
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>个性化颜色</label>
-              <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 overflow-hidden">
-                  <input
-                    type="color"
-                    value={accentColor}
-                    onChange={(e) => setAccentColor(e.target.value)}
-                    className="absolute inset-0 w-full h-full cursor-pointer"
-                    style={{ appearance: 'none', border: 'none' }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={accentColor}
-                    onChange={(e) => setAccentColor(e.target.value)}
-                    className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-                    placeholder="输入颜色代码"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} mt-4 transition-all duration-300`}>
-          <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>😴 睡眠设置</h2>
-          <p className={`mt-2 text-xs ${currentTheme.colors.textLight}`}>设置您的睡眠习惯，获取更精准的咖啡因摄入建议。</p>
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常入睡时间</label>
-              <input
-                type="time"
-                value={sleepData.usualBedtime}
-                onChange={(e) => setSleepData(prev => ({ ...prev, usualBedtime: e.target.value }))}
-                className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </div>
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>通常起床时间</label>
-              <input
-                type="time"
-                value={sleepData.usualWakeup}
-                onChange={(e) => setSleepData(prev => ({ ...prev, usualWakeup: e.target.value }))}
-                className={`w-full rounded-xl border ${currentTheme.colors.border} ${currentTheme.colors.card} px-3 py-2 text-sm ${currentTheme.colors.text} outline-none ring-indigo-200 focus:ring`}
-              />
-            </div>
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>睡眠质量</label>
-              <div className="grid grid-cols-3 gap-2">
-                {["poor", "fair", "good"].map(quality => (
-                  <button
-                    key={quality}
-                    onClick={() => setSleepData(prev => ({ ...prev, sleepQuality: quality }))}
-                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                    style={{
-                      backgroundColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.cardColor,
-                      color: sleepData.sleepQuality === quality ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                      borderColor: sleepData.sleepQuality === quality ? accentColor : currentTheme.colors.borderColor
-                    }}
-                  >
-                    {quality === "poor" ? "较差" : quality === "fair" ? "一般" : "良好"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className={`block text-sm ${currentTheme.colors.textSecondary} mb-2`}>咖啡因敏感度</label>
-              <div className="grid grid-cols-3 gap-2">
-                {["low", "medium", "high"].map(sensitivity => (
-                  <button
-                    key={sensitivity}
-                    onClick={() => setSleepData(prev => ({ ...prev, sensitivityToCaffeine: sensitivity }))}
-                    className={`py-2 rounded-xl border text-sm transition-colors duration-300 ${currentTheme.colors.border}`}
-                    style={{
-                      backgroundColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.cardColor,
-                      color: sleepData.sensitivityToCaffeine === sensitivity ? getContrastColor(accentColor) : currentTheme.colors.textSecondaryColor,
-                      borderColor: sleepData.sensitivityToCaffeine === sensitivity ? accentColor : currentTheme.colors.borderColor
-                    }}
-                  >
-                    {sensitivity === "low" ? "低" : sensitivity === "medium" ? "中" : "高"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2">
-          <button
-            className="w-full rounded-xl py-2 text-sm active:scale-95 transition-transform"
-            style={{
-              backgroundColor: `${accentColor}40`,
-              borderColor: accentColor,
-              borderWidth: "1px",
-              borderStyle: "solid",
-              backdropFilter: "blur(4px)",
-              WebkitBackdropFilter: "blur(4px)",
-              color: getContrastColor(accentColor)
-            }}
-            onClick={onExportCsv}
-          >
-            📤 导出 CSV 记录
-          </button>
-          <button
-            className={`w-full rounded-xl border ${currentTheme.colors.dangerBorder} ${currentTheme.colors.danger} py-2 text-sm text-rose-600 active:scale-95 transition-transform`}
-            onClick={() => {
-              if (window.confirm(`确定要清空所有记录吗？共 ${recordsCount} 条记录，此操作不可恢复。`)) {
-                onResetAll();
-              }
-            }}
-          >
-            🧹 清空所有记录
-          </button>
-        </div>
-      </section>
-    );
+    return null;
   } catch (error) {
     console.error('SettingsTab error:', error);
     return (
@@ -2633,7 +2809,7 @@ const RecordList = ({ records, filterDate, setFilterDate, onEdit, onDelete, curr
   const inputRef = useRef(null);
   const [isIOS, setIsIOS] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 2;
 
   useEffect(() => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -3461,6 +3637,7 @@ function App() {
     selectedIngredients: []
   });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [settingsView, setSettingsView] = useState(null); // null: 个人信息页, 'personal': 个人设置, 'personalization': 个性化设置, 'sleep': 睡眠设置
   const [profile, setProfile] = useState(() => {
     try {
       const saved = localStorage.getItem(PROFILE_KEY);
@@ -4106,6 +4283,8 @@ function App() {
             setAccentColor={setAccentColor}
             currentTheme={currentTheme}
             currentUiStyle={currentUiStyle}
+            settingsView={settingsView}
+            setSettingsView={setSettingsView}
             getContrastColor={getContrastColor}
             sleepData={sleepData}
             setSleepData={setSleepData}
