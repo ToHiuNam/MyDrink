@@ -1382,6 +1382,7 @@ const TrendTab = ({
   accentColor
 }) => {
   const [expanded, setExpanded] = useState(true);
+  const [trendExpanded, setTrendExpanded] = useState(true);
   const [selectedMetrics, setSelectedMetrics] = useState(['caffeine', 'water']);
   const [trendRange, setTrendRange] = useState('近7天');
 
@@ -1642,7 +1643,7 @@ const TrendTab = ({
                       <p className={`text-sm font-medium ${isExceeded ? 'text-rose-500' : currentTheme.colors.text}`}>
                         {value} {metric.unit}
                       </p>
-                      <p className={`text-xs ${currentTheme.colors.textLight}`}>目标: {goal} {metric.unit}</p>
+                      <p className={`text-xs ${currentTheme.colors.textLight}`}>{metric.key === 'water' ? '目标' : '上限'}: {goal} {metric.unit}</p>
                     </div>
                   );
                 })}
@@ -1652,80 +1653,92 @@ const TrendTab = ({
 
           {/* 核心趋势图 */}
           <div className={`${currentUiStyle.cardRadius} ${currentTheme.colors.card} p-4 ${currentUiStyle.shadow} ring-1 ${currentTheme.colors.cardBorder} transition-all duration-300`}>
-            <div className="mb-4">
-              <h2 className={`text-base font-semibold ${currentTheme.colors.text} mb-3`}>📊 核心趋势</h2>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {metricsConfig.map((metric) => (
-                  <button
-                    key={metric.key}
-                    className={`px-3 py-1 rounded-full text-xs transition-colors duration-300 ${selectedMetrics[0] === metric.key ? currentTheme.colors.border : ''}`}
-                    style={{
-                      backgroundColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.cardColor,
-                      color: selectedMetrics[0] === metric.key ? getContrastColor(metric.color) : currentTheme.colors.textSecondaryColor,
-                      borderColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.borderColor
-                    }}
-                    onClick={() => {
-                      setSelectedMetrics([metric.key]);
-                    }}
-                  >
-                    {metric.name}
-                  </button>
-                ))}
-              </div>
-              <div className={`flex overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
-                <div className="flex gap-1">
-                  {TREND_RANGES.map((range) => (
-                    <button
-                      key={range}
-                      className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
-                        trendRange === range ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
-                      }`}
-                      onClick={() => setTrendRange(range)}
-                    >
-                      {range}
-                    </button>
-                  ))}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className={`text-base font-semibold ${currentTheme.colors.text}`}>📊 核心趋势</h2>
+              <button
+                onClick={() => setTrendExpanded(!trendExpanded)}
+                className={`text-sm ${currentTheme.colors.textSecondary} hover:${currentTheme.colors.text}`}
+              >
+                {trendExpanded ? '收起' : '展开'}
+              </button>
+            </div>
+            {trendExpanded && (
+              <>
+                <div className="mb-3">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {metricsConfig.map((metric) => (
+                      <button
+                        key={metric.key}
+                        className={`px-3 py-1 rounded-full text-xs transition-colors duration-300 ${selectedMetrics[0] === metric.key ? currentTheme.colors.border : ''}`}
+                        style={{
+                          backgroundColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.cardColor,
+                          color: selectedMetrics[0] === metric.key ? getContrastColor(metric.color) : currentTheme.colors.textSecondaryColor,
+                          borderColor: selectedMetrics[0] === metric.key ? metric.color : currentTheme.colors.borderColor
+                        }}
+                        onClick={() => {
+                          setSelectedMetrics([metric.key]);
+                        }}
+                      >
+                        {metric.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={`flex overflow-x-auto rounded-lg ${currentTheme.colors.borderLight} p-1`}>
+                    <div className="flex gap-1">
+                      {TREND_RANGES.map((range) => (
+                        <button
+                          key={range}
+                          className={`rounded-md px-2 py-1 text-xs whitespace-nowrap flex-shrink-0 transition-colors duration-300 ${
+                            trendRange === range ? `${currentTheme.colors.card} ${currentTheme.colors.text} shadow-sm` : currentTheme.colors.textLight
+                          }`}
+                          onClick={() => setTrendRange(range)}
+                        >
+                          {range}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
-                <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
-                  {selectedMetrics[0] && (
-                    <>
-                      <defs>
-                        <linearGradient id={`gradient-${selectedMetrics[0]}-${currentTheme.name}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.8} />
-                          <stop offset="95%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.1} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="cumulative"
-                        stroke={metricsConfig.find(m => m.key === selectedMetrics[0]).color}
-                        fillOpacity={1}
-                        fill={`url(#gradient-${selectedMetrics[0]}-${currentTheme.name})`}
-                        name={metricsConfig.find(m => m.key === selectedMetrics[0]).name}
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%" key={currentTheme.name}>
+                    <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 5 }}>
+                      {selectedMetrics[0] && (
+                        <>
+                          <defs>
+                            <linearGradient id={`gradient-${selectedMetrics[0]}-${currentTheme.name}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.8} />
+                              <stop offset="95%" stopColor={metricsConfig.find(m => m.key === selectedMetrics[0]).color} stopOpacity={0.1} />
+                            </linearGradient>
+                          </defs>
+                          <Area
+                            type="monotone"
+                            dataKey="cumulative"
+                            stroke={metricsConfig.find(m => m.key === selectedMetrics[0]).color}
+                            fillOpacity={1}
+                            fill={`url(#gradient-${selectedMetrics[0]}-${currentTheme.name})`}
+                            name={metricsConfig.find(m => m.key === selectedMetrics[0]).name}
+                          />
+                        </>
+                      )}
+                      <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563'} />
+                      <XAxis 
+                        dataKey="time" 
+                        tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                        axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                        tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
                       />
-                    </>
-                  )}
-                  <CartesianGrid strokeDasharray="3 3" stroke={currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563'} />
-                  <XAxis 
-                    dataKey="time" 
-                    tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
-                    axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
-                    tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
-                    axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
-                    tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
-                    domain={[0, 'dataMax + 1']}
-                  />
-                  <Tooltip contentStyle={{ backgroundColor: currentTheme.colors.card, borderColor: currentTheme.colors.border, color: currentTheme.colors.text }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+                      <YAxis 
+                        tick={{ fontSize: 12, fill: currentTheme.name === 'light' ? '#475569' : '#9ca3af' }} 
+                        axisLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }} 
+                        tickLine={{ stroke: currentTheme.name === 'light' ? '#e2e8f0' : '#4b5563' }}
+                        domain={[0, 'dataMax + 1']}
+                      />
+                      <Tooltip contentStyle={{ backgroundColor: currentTheme.colors.card, borderColor: currentTheme.colors.border, color: currentTheme.colors.text }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </div>
 
 
